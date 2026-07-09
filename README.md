@@ -29,7 +29,7 @@
 ### 一键安装
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/Bumingxin/AiStock.git
 cd aistock
 bash install.sh
 ```
