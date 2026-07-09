@@ -38,7 +38,7 @@ bash install.sh
 
 1. **克隆项目**
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/Bumingxin/AiStock.git
    cd aistock
    ```
 
@@ -50,20 +50,20 @@ bash install.sh
 
 3. **构建 Docker 镜像**
    ```bash
-   docker build -t ai-stock .
+   docker build -t aistock .
    ```
 
 4. **启动容器**
    ```bash
    docker run -d \
-     --name ai-stock \
+     --name aistock \
      -p 8000:8000 \
      -v $(pwd)/config.json:/app/config.json \
      -v $(pwd)/data:/app/data \
      -v $(pwd)/results:/app/results \
      -v $(pwd)/deep_work:/app/deep_work \
      -v $(pwd)/outputs:/app/outputs \
-     ai-stock
+     aistock
    ```
 
 5. **访问系统**
@@ -78,7 +78,7 @@ bash install.sh
 {
   "openai_base_url": "https://api.openai.com/v1",
   "openai_api_key": "your_api_key",
-  "model": "gpt-4o",
+  "model": ""your_model_name",
   "top_sectors": 5,
   "top_stocks": 20,
   "analysis_points_cost": 50,
@@ -91,27 +91,27 @@ bash install.sh
 
 ```bash
 # 查看日志
-docker logs -f ai-stock
+docker logs -f aistock
 
 # 停止容器
-docker stop ai-stock
+docker stop aistock
 
 # 启动容器
-docker start ai-stock
+docker start aistock
 
 # 重启容器
-docker restart ai-stock
+docker restart aistock
 
 # 重新构建
-docker build -t ai-stock .
-docker rm -f ai-stock
-docker run -d --name ai-stock -p 8989:8000 \
+docker build -t aistock .
+docker rm -f aistock
+docker run -d --name aistock -p 8989:8000 \
   -v $(pwd)/config.json:/app/config.json \
   -v $(pwd)/data:/app/data \
   -v $(pwd)/results:/app/results \
   -v $(pwd)/deep_work:/app/deep_work \
   -v $(pwd)/outputs:/app/outputs \
-  ai-stock
+  aistock
 ```
 
 ## 目录结构
