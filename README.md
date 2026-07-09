@@ -78,7 +78,7 @@ bash install.sh
 {
   "openai_base_url": "https://api.openai.com/v1",
   "openai_api_key": "your_api_key",
-  "model": ""your_model_name",
+  "model": "your_model_name",
   "top_sectors": 5,
   "top_stocks": 20,
   "analysis_points_cost": 50,
