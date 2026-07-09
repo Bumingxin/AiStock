@@ -57,7 +57,7 @@ bash install.sh
    ```bash
    docker run -d \
      --name ai-stock \
-     -p 8989:8000 \
+     -p 8000:8000 \
      -v $(pwd)/config.json:/app/config.json \
      -v $(pwd)/data:/app/data \
      -v $(pwd)/results:/app/results \
@@ -67,8 +67,8 @@ bash install.sh
    ```
 
 5. **访问系统**
-   - 浏览器访问: http://localhost:8989
-   - 默认管理员账号: admin / admin
+   - 浏览器访问: http://localhost:8000
+   - 默认管理员账号: admin / admin123
 
 ## 配置说明
 
