@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI量化选股系统</title>
+    <link rel="stylesheet" href="/static/css/style.css?v=4">
+    <style>
+    .card{display:flex;flex-direction:column;justify-content:center;align-items:center;min-height:120px}
+    .card-title{font-size:14px;font-weight:600;color:#667085;margin-bottom:8px}
+    .card-value{font-family:Consolas,monospace;font-size:32px;font-weight:700}
+    .card-market .market-value{font-size:16px}
+    </style>
+</head>
+<body>
+    {% include "_top_nav.html" %}
+
+    <main class="container">
+        <div id="tab-monitor" class="tab-panel active">
+            <div class="monitor-layout">
+                <div class="stage-panel">
+                    <h3 class="panel-title">执行阶段</h3>
+                    <div class="stages">
+                        <div class="stage" data-stage="1"><span class="stage-num">1</span><span class="stage-text">联网抓取多源新闻</span><span class="stage-status"></span></div>
+                        <div class="stage" data-stage="2"><span class="stage-num">2</span><span class="stage-text">LLM热点提取→板块推荐</span><span class="stage-status"></span></div>
+                        <div class="stage" data-stage="3"><span class="stage-num">3</span><span class="stage-text">主板候选池构建</span><span class="stage-status"></span></div>
+                        <div class="stage" data-stage="4"><span class="stage-num">4</span><span class="stage-text">个股多线程技术研判</span><span class="stage-status"></span></div>
+                        <div class="stage" data-stage="5"><span class="stage-num">5</span><span class="stage-text">候选池综合排序</span><span class="stage-status"></span></div>
+                    </div>
+                    <div class="stage-stats">
+                        <span id="stat-news">新闻: -</span>
+                        <span id="stat-sources">来源: -</span>
+                        <span id="stat-sectors">板块: -</span>
+                        <span id="stat-candidates">候选: -</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div id="progress-fill" class="progress-fill" style="width:0%"></div>
+                    </div>
+                    <button id="btn-run" class="btn-primary btn-run">开始分析</button>
+                    <button id="btn-stop" class="btn-danger btn-run" style="display:none">停止分析</button>
+                </div>
+                <div class="log-panel">
+                    <h3 class="panel-title">运行日志</h3>
+                    <div id="log-area" class="log-area"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-dashboard" class="tab-panel">
+            <div class="dashboard-top">
+                <div class="card card-gauge">
+                    <h4 class="card-title">综合评估</h4>
+                    <canvas id="gauge-canvas" width="200" height="120"></canvas>
+                    <div id="gauge-label" class="gauge-label">综合置信度: -</div>
+                </div>
+                <div class="card"><h4 class="card-title">入选标的</h4><div id="card-total" class="card-value">0</div></div>
+                <div class="card"><h4 class="card-title">覆盖板块</h4><div id="card-sectors" class="card-value">0</div></div>
+                <div class="card"><h4 class="card-title">高置信</h4><div id="card-high" class="card-value">0</div></div>
+                <div class="card"><h4 class="card-title">平均信号</h4><div id="card-signal" class="card-value">0</div></div>
+                <div class="card card-market">
+                    <h4 class="card-title">大盘环境</h4>
+                    <div id="market-info" class="card-value market-value">等待分析...</div>
+                </div>
+            </div>
+            <div class="table-panel">
+                <h3 class="panel-title">板块候选池排行榜（每板块2-5只，双击进入AI对话）</h3>
+                <div class="table-wrapper">
+                    <table id="stock-table" class="stock-table">
+                        <thead>
+                            <tr>
+                                <th data-col="rank">排名</th>
+                                <th data-col="code">代码</th>
+                                <th data-col="name">名称</th>
+                                <th data-col="sector">板块</th>
+                                <th data-col="current_price">当前价</th>
+                                <th data-col="entry_price">买入观察</th>
+                                <th data-col="stop_loss_price">止损价</th>
+                                <th data-col="target_price_3d">3日目标</th>
+                                <th data-col="signal_strength">信号</th>
+                                <th data-col="probability_label">置信</th>
+                                <th data-col="logic">逻辑</th>
+                                <th data-col="watch">技术面观察</th>
+                            </tr>
+                        </thead>
+                        <tbody id="stock-tbody"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div id="dash-status" class="dash-status">提示：结果按综合评分排序，每个板块保留2-5只候选，双击标的进入AI深度分析。</div>
+        </div>
+
+        <div id="tab-chat" class="tab-panel">
+            <div class="chat-layout">
+                <div class="chat-sidebar">
+                    <label class="field-label">选择标的：</label>
+                    <select id="chat-stock-select" class="select-full"></select>
+                    <div id="chat-stock-info" class="stock-info-card"></div>
+                </div>
+                <div class="chat-main">
+                    <div id="chat-messages" class="chat-messages"></div>
+                    <div class="chat-quick">
+                        <span class="field-label">快捷提问：</span>
+                        <button class="btn-quick" data-q="为什么它排在这个位置？">为什么排在这里</button>
+                        <button class="btn-quick" data-q="新闻逻辑是否足够强？">新闻逻辑</button>
+                        <button class="btn-quick" data-q="支撑和压力位怎么用？">支撑压力</button>
+                        <button class="btn-quick" data-q="买入观察和止损怎么设置？">买卖设置</button>
+                        <button class="btn-quick" data-q="未来3天最大风险是什么？">风险分析</button>
+                    </div>
+                    <div class="chat-input-row">
+                        <input id="chat-input" class="chat-input" placeholder="输入问题..." />
+                        <button id="btn-send" class="btn-primary">发送</button>
+                        <button id="btn-clear-chat" class="btn-secondary">清空</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-deep" class="tab-panel">
+            <div class="monitor-layout">
+                <div class="stage-panel">
+                    <h3 class="panel-title">深度分析</h3>
+                    <div class="deep-form" style="flex:1">
+                        <div class="form-row">
+                            <label class="field-label">选择标的</label>
+                            <select id="deep-stock-select" class="select-full" style="font-size:12px">
+                                <option value="">-- 从分析结果选择 --</option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <label class="field-label">或输入代码</label>
+                            <input id="deep-code" class="chat-input" placeholder="如 600030" />
+                        </div>
+
+                    </div>
+                    <div style="margin-top:8px"><a id="btn-deep-download" class="btn-secondary btn-run" href="#" target="_blank" style="text-decoration:none;display:none">📄 保存分析报告</a></div>
+                    <div class="stages" id="deep-stages">
+                        <div class="stage" data-stage="数据抓取"><span class="stage-num">1</span><span class="stage-text">数据抓取</span><span class="stage-status"></span></div>
+                        <div class="stage" data-stage="评分计算"><span class="stage-num">2</span><span class="stage-text">评分计算</span><span class="stage-status"></span></div>
+                        <div class="stage" data-stage="同行对比"><span class="stage-num">3</span><span class="stage-text">同行对比</span><span class="stage-status"></span></div>
+                        <div class="stage" data-stage="博弈分析"><span class="stage-num">4</span><span class="stage-text">博弈分析</span><span class="stage-status"></span></div>
+                        <div class="stage" data-stage="渲染HTML"><span class="stage-num">5</span><span class="stage-text">渲染HTML</span><span class="stage-status"></span></div>
+                        <div class="stage" data-stage="验证结果"><span class="stage-num">6</span><span class="stage-text">验证结果</span><span class="stage-status"></span></div>
+                    </div>
+                    <div class="progress-bar"><div id="deep-progress-fill" class="progress-fill" style="width:0%"></div></div>
+                    <div id="deep-status-text" style="font-size:12px;color:#6b7280;margin:6px 0">就绪</div>
+                    <button id="btn-deep-run" class="btn-primary btn-run">开始分析</button>
+                    <button id="btn-deep-stop" class="btn-danger btn-run" style="display:none">停止分析</button>
+
+                </div>
+                <div class="log-panel">
+                    <div id="deep-iframe-wrap" style="display:none;flex-direction:column;height:100%">
+                        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-shrink:0">
+                            <h3 class="panel-title" style="margin:0;flex:1">分析结果</h3>
+                        </div>
+                        <iframe id="deep-iframe" style="flex:1;width:100%;border:none;border-radius:8px;min-height:500px"></iframe>
+                    </div>
+                    <div id="deep-log-area" class="log-area" style="flex:1"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+
+
+    <div id="modal-stock-detail" class="modal-overlay" style="display:none">
+        <div class="modal modal-lg">
+            <div class="modal-header">
+                <h3 id="detail-title">股票详情</h3>
+                <button class="modal-close" id="btn-close-detail">✕</button>
+            </div>
+            <div class="modal-body">
+                <pre id="detail-content" class="detail-pre"></pre>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-primary" id="btn-detail-chat">进入AI对话</button>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <span>数据来源：新浪/腾讯/东财/财联社/CNBC/WSJ/Fed 等 | 每板块2-5只候选</span>
+        <span class="footer-disclaimer">仅供参考，不构成投资建议</span>
+    </footer>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

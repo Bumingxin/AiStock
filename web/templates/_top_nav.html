@@ -1,0 +1,40 @@
+<nav class="navbar">
+    <div class="nav-brand">
+        <span class="brand-icon">AI</span>
+        <span class="brand-text">量化选股系统</span>
+    </div>
+    <div class="nav-tabs">
+        <a href="/" class="nav-tab{% if active_page == 'monitor' %} active{% endif %}" data-tab="monitor">开始选股</a>
+        <a href="/#tab-dashboard" class="nav-tab{% if active_page == 'dashboard' %} active{% endif %}" data-tab="dashboard">分析结果</a>
+        <a href="/#tab-chat" class="nav-tab{% if active_page == 'chat' %} active{% endif %}" data-tab="chat">AI对话</a>
+        <a href="/#tab-deep" class="nav-tab{% if active_page == 'deep' %} active{% endif %}" data-tab="deep">深度分析</a>
+        <a href="/history" class="nav-tab{% if active_page == 'history' %} active{% endif %}">历史报告</a>
+        <a href="/admin" class="nav-tab{% if active_page == 'admin' %} active{% endif %}" id="nav-admin"{% if not user.is_admin %} style="display:none"{% endif %}>后台管理</a>
+    </div>
+    <div class="nav-actions">
+        <span id="nav-status" class="status-badge status-ready"{% if not show_runtime %} style="display:none"{% endif %}>就绪</span>
+        <span id="nav-timer" class="timer"{% if not show_runtime %} style="display:none"{% endif %}>00:00</span>
+        <div class="user-avatar-wrap">
+            <div class="user-avatar" id="user-avatar">
+                <span id="avatar-letter">{{ (user.nickname or user.username or "?")[0]|upper }}</span>
+            </div>
+            <div class="user-dropdown" id="user-dropdown">
+                <div class="dropdown-header">
+                    <div class="dropdown-avatar"><span id="dropdown-letter">{{ (user.nickname or user.username or "?")[0]|upper }}</span></div>
+                    <div class="dropdown-info">
+                        <div class="dropdown-name" id="dropdown-name">{{ user.nickname or user.username or "-" }}</div>
+                        <div class="dropdown-points">剩余点数：<span id="dropdown-points">{{ user.points or 0 }}</span></div>
+                    </div>
+                </div>
+                <div class="dropdown-divider"></div>
+                <div class="dropdown-item" id="btn-change-nickname">修改昵称</div>
+                <div class="dropdown-item" id="btn-change-password">修改密码</div>
+                <div class="dropdown-divider"></div>
+                <a href="/history" class="dropdown-item" style="text-decoration:none;display:block">历史报告</a>
+                <a href="/billing" class="dropdown-item" style="text-decoration:none;display:block">查看账单</a>
+                <div class="dropdown-divider"></div>
+                <div class="dropdown-item dropdown-logout" id="btn-logout">退出登录</div>
+            </div>
+        </div>
+    </div>
+</nav>
