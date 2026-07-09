@@ -132,7 +132,10 @@
                         </div>
 
                     </div>
-                    <div style="margin-top:8px"><a id="btn-deep-download" class="btn-secondary btn-run" href="#" target="_blank" style="text-decoration:none;display:none">📄 保存分析报告</a></div>
+                    <div id="deep-export-btns" style="margin-top:8px;display:none">
+                    <button id="btn-deep-download" class="btn-secondary btn-run" style="margin-bottom:6px">📄 保存分析报告 HTML</button>
+                    <button id="btn-deep-pdf" class="btn-secondary btn-run">📄 保存分析报告 PDF</button>
+                </div>
                     <div class="stages" id="deep-stages">
                         <div class="stage" data-stage="数据抓取"><span class="stage-num">1</span><span class="stage-text">数据抓取</span><span class="stage-status"></span></div>
                         <div class="stage" data-stage="评分计算"><span class="stage-num">2</span><span class="stage-text">评分计算</span><span class="stage-status"></span></div>

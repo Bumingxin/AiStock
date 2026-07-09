@@ -511,76 +511,6 @@ fetch("/api/status", { credentials: "include" }).then(r => r.json()).then(s => {
     }
 }).catch(() => {});
 
-/* ─── User Avatar & Dropdown ─── */
-function loadUserInfo() {
-    fetch("/api/user/info", { credentials: "include" }).then(r => r.json()).then(data => {
-        if (data.error) return;
-        const name = data.nickname || data.username || "?";
-        const letter = name.charAt(0).toUpperCase();
-        const points = data.points !== undefined ? data.points : "-";
-        $("#avatar-letter").textContent = letter;
-        $("#dropdown-letter").textContent = letter;
-        $("#dropdown-name").textContent = name;
-        $("#dropdown-points").textContent = points;
-        if (data.is_admin) {
-            const adminBtn = $("#nav-admin");
-            if (adminBtn) adminBtn.style.display = "";
-        }
-    }).catch(() => {});
-}
-loadUserInfo();
-
-const avatarBtn = $("#user-avatar");
-const dropdown = $("#user-dropdown");
-avatarBtn.addEventListener("click", (e) => {
-    e.stopPropagation();
-    dropdown.classList.toggle("show");
-});
-document.addEventListener("click", (e) => {
-    if (!dropdown.contains(e.target) && e.target !== avatarBtn) {
-        dropdown.classList.remove("show");
-    }
-});
-
-$("#btn-logout").addEventListener("click", () => {
-    window.location.href = "/logout";
-});
-
-$("#btn-change-nickname").addEventListener("click", () => {
-    dropdown.classList.remove("show");
-    const name = prompt("请输入新昵称：");
-    if (!name || !name.trim()) return;
-    fetch("/api/user/nickname", {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nickname: name.trim() }),
-    }).then(r => r.json()).then(data => {
-        if (data.error) { alert(data.error); return; }
-        alert("昵称已修改");
-        loadUserInfo();
-    }).catch(e => alert("修改失败：" + e.message));
-});
-
-$("#btn-change-password").addEventListener("click", () => {
-    dropdown.classList.remove("show");
-    const oldPwd = prompt("请输入当前密码：");
-    if (!oldPwd) return;
-    const newPwd = prompt("请输入新密码：");
-    if (!newPwd || newPwd.length < 4) { alert("新密码至少4位"); return; }
-    fetch("/api/user/password", {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ old_password: oldPwd, new_password: newPwd }),
-    }).then(r => r.json()).then(data => {
-        if (data.error) { alert(data.error); return; }
-        alert("密码已修改，请重新登录");
-        window.location.href = "/logout";
-    }).catch(e => alert("修改失败：" + e.message));
-});
-
-
 /* ─── Deep Analysis ─── */
 let deepWs = null;
 let deepRunning = false;
@@ -735,11 +665,32 @@ function renderDeepResult(r) {
         if (iframe) iframe.src = "/api/deep-analysis/view/" + encodeURIComponent(fname);
         if (iframeWrap) iframeWrap.style.display = "flex";
         if (logArea) logArea.style.display = "none";
+        const exportBtns = $("#deep-export-btns");
+        if (exportBtns) exportBtns.style.display = "";
         const dlBtn = $("#btn-deep-download");
         if (dlBtn) {
-            dlBtn.href = "/api/deep-analysis/download/" + encodeURIComponent(fname);
-            dlBtn.style.display = "";
+            dlBtn.onclick = () => {
+                const a = document.createElement("a");
+                a.href = "/api/deep-analysis/download/" + encodeURIComponent(fname);
+                a.download = fname;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            };
         }
+    }
+}
+
+function exportDeepPdf() {
+    const iframe = $("#deep-iframe");
+    if (!iframe || !iframe.contentWindow) {
+        alert("请先完成分析并查看报告");
+        return;
+    }
+    try {
+        iframe.contentWindow.print();
+    } catch(e) {
+        alert("PDF 导出失败，请确保报告已加载完成");
     }
 }
 
@@ -749,6 +700,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const btnStop = $("#btn-deep-stop");
     if (btnRun) btnRun.addEventListener("click", startDeepAnalysis);
     if (btnStop) btnStop.addEventListener("click", stopDeepAnalysis);
+    const btnPdf = $("#btn-deep-pdf");
+    if (btnPdf) btnPdf.addEventListener("click", exportDeepPdf);
 
     // Load stock list from batch results
     loadDeepStockList();
