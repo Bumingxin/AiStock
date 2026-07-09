@@ -5,7 +5,13 @@ import json
 import threading
 import time
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
+
+BJT = timezone(timedelta(hours=8))
+def _now_bjt() -> str:
+    """Return current Beijing time as ISO string without tz suffix."""
+    return datetime.now(BJT).replace(tzinfo=None).isoformat()
+    """Return current Beijing time as ISO string without tz suffix."""
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -62,7 +68,7 @@ class SessionState:
             "detail": msg,
             "stage": stage,
             "counts": counts,
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": _now_bjt(),
         }
         self.log_history.append(entry)
         if len(self.log_history) > 2000:
@@ -145,7 +151,7 @@ class DeepAnalysisState:
         self.error: Optional[str] = None
 
     def add_log(self, msg: str, stage: str = ""):
-        entry = {"type": "log", "detail": msg, "stage": stage, "timestamp": datetime.now().isoformat()}
+        entry = {"type": "log", "detail": msg, "stage": stage, "timestamp": _now_bjt()}
         self.log_history.append(entry)
         if len(self.log_history) > 500:
             self.log_history = self.log_history[-400:]
@@ -303,7 +309,7 @@ async def start_analysis(request: Request):
     session.log_history = []
 
     def stage_cb(stage: str, detail: str, counts: dict | None = None):
-        msg = {"type": "log", "detail": detail, "stage": stage, "counts": counts, "timestamp": datetime.now().isoformat()}
+        msg = {"type": "log", "detail": detail, "stage": stage, "counts": counts, "timestamp": _now_bjt()}
         session.add_log(detail, stage, counts)
         session.push_ws(msg)
 
@@ -349,10 +355,10 @@ async def start_analysis(request: Request):
             user = get_session_user(request.cookies.get(COOKIE_NAME))
             if user:
                 final_list = result.get("final_list", [])
-                title = f"分析_{datetime.now().strftime('%m%d_%H%M')}"
+                title = f"分析_{_now_bjt_fmt('%m%d_%H%M')}"
                 if final_list:
                     codes = [f.get("code", "") for f in final_list[:3]]
-                    title = f"分析_{'+'.join(codes)}_{datetime.now().strftime('%m%d_%H%M')}"
+                    title = f"分析_{'+'.join(codes)}_{_now_bjt_fmt('%m%d_%H%M')}"
                 save_analysis(
                     user_id=user["id"],
                     title=title,
@@ -717,7 +723,7 @@ async def start_deep_analysis(request: Request):
     def stage_cb(stage: str, detail: str, error: bool = False):
         state.current_stage = stage
         state.add_log(detail, stage)
-        msg = {"type": "log", "detail": detail, "stage": stage, "timestamp": datetime.now().isoformat()}
+        msg = {"type": "log", "detail": detail, "stage": stage, "timestamp": _now_bjt()}
         state.push_ws(msg)
 
         stages = ["数据抓取", "评分计算", "同行对比", "合并同行", "博弈分析", "合并博弈", "渲染HTML", "验证结果"]
@@ -866,3 +872,4 @@ async def websocket_logs(websocket: WebSocket):
     finally:
         if websocket in session.log_ws:
             session.log_ws.remove(websocket)
+

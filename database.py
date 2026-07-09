@@ -2,9 +2,12 @@ from __future__ import annotations
 
 import hashlib
 import sqlite3
-from datetime import datetime
-from pathlib import Path
-from typing import Any, Dict, List, Optional
+from datetime import datetime, timezone, timedelta
+
+BJT = timezone(timedelta(hours=8))
+def _now_bjt() -> str:
+    """Return current Beijing time as ISO string without tz suffix."""
+    return datetime.now(BJT).replace(tzinfo=None).isoformat()
 
 DB_PATH = Path(__file__).parent / "data" / "members.db"
 
@@ -92,7 +95,7 @@ def log_admin_action(admin_user: str, action_type: str, target_user: str = "", d
     try:
         conn.execute(
             "INSERT INTO admin_logs (admin_user, action_type, target_user, detail, created_at) VALUES (?, ?, ?, ?, ?)",
-            (admin_user, action_type, target_user, detail, datetime.now().isoformat())
+            (admin_user, action_type, target_user, detail, _now_bjt())
         )
         conn.commit()
     finally:
@@ -119,7 +122,7 @@ def hash_password(password: str) -> str:
 
 def create_user(username: str, password: str, points: int = 0, is_admin: bool = False) -> Dict[str, Any]:
     """Create a new user and return user dict."""
-    now = datetime.now().isoformat()
+    now = _now_bjt()
     conn = get_conn()
     try:
         conn.execute(
@@ -142,7 +145,7 @@ def authenticate_user(username: str, password: str) -> Optional[Dict[str, Any]]:
             return None
         if row["password_hash"] != hash_password(password):
             return None
-        now = datetime.now().isoformat()
+        now = _now_bjt()
         conn.execute("UPDATE users SET last_login = ? WHERE id = ?", (now, row["id"]))
         conn.commit()
         return dict(row)
@@ -178,7 +181,7 @@ def deduct_points(user_id: int, amount: int, action_type: str, detail: str = "")
         if row is None or row["points"] < amount:
             return False
         conn.execute("UPDATE users SET points = points - ? WHERE id = ?", (amount, user_id))
-        now = datetime.now().isoformat()
+        now = _now_bjt()
         conn.execute(
             "INSERT INTO usage_logs (user_id, action_type, points_cost, created_at, detail) VALUES (?, ?, ?, ?, ?)",
             (user_id, action_type, amount, now, detail)
@@ -295,7 +298,7 @@ def save_analysis(user_id: int, title: str, final_list: str, all_reports: str, m
         cursor = conn.execute(
             """INSERT INTO analysis_history (user_id, created_at, title, final_list, all_reports, market, news_summary, disclaimer)
                VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
-            (user_id, datetime.now().isoformat(), title, final_list, all_reports, market, news_summary, disclaimer)
+            (user_id, _now_bjt(), title, final_list, all_reports, market, news_summary, disclaimer)
         )
         conn.commit()
         return cursor.lastrowid
@@ -369,3 +372,4 @@ def get_user_usage_logs(user_id: int, limit: int = 100) -> List[Dict[str, Any]]:
 
 
 _ensure_db()
+
