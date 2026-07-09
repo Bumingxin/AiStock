@@ -511,49 +511,8 @@ fetch("/api/status", { credentials: "include" }).then(r => r.json()).then(s => {
     }
 }).catch(() => {});
 
-if(!window.__navAvatarInit){
-/* --- User Avatar & Dropdown (fallback for pages without _top_nav inline script) --- */
-function loadUserInfo() {
-    fetch("/api/user/info", { credentials: "include" }).then(r => r.json()).then(data => {
-        if (data.error) return;
-        const name = data.nickname || data.username || "?";
-        const letter = name.charAt(0).toUpperCase();
-        const points = data.points !== undefined ? data.points : "-";
-        const el1 = $("#avatar-letter"); if(el1) el1.textContent = letter;
-        const el2 = $("#dropdown-letter"); if(el2) el2.textContent = letter;
-        const el3 = $("#dropdown-name"); if(el3) el3.textContent = name;
-        const el4 = $("#dropdown-points"); if(el4) el4.textContent = points;
-        if (data.is_admin) { const a = $("#nav-admin"); if (a) a.style.display = ""; }
-    }).catch(() => {});
-}
-loadUserInfo();
-const avatarBtn = $("#user-avatar");
-const dropdown = $("#user-dropdown");
-if (avatarBtn && dropdown) {
-    avatarBtn.addEventListener("click", (e) => { e.stopPropagation(); dropdown.classList.toggle("show"); });
-    document.addEventListener("click", (e) => { if (!dropdown.contains(e.target) && e.target !== avatarBtn) dropdown.classList.remove("show"); });
-}
-const logoutBtn = $("#btn-logout");
-if (logoutBtn) logoutBtn.addEventListener("click", () => { window.location.href = "/logout"; });
-const nickBtn = $("#btn-change-nickname");
-if (nickBtn) nickBtn.addEventListener("click", () => {
-    dropdown.classList.remove("show");
-    const name = prompt("请输入新昵称：");
-    if (!name || !name.trim()) return;
-    fetch("/api/user/nickname", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ nickname: name.trim() }) }).then(r => r.json()).then(data => { if (data.error) { alert(data.error); return; } alert("昵称已修改"); loadUserInfo(); }).catch(e => alert("修改失败：" + e.message));
-});
-const pwdBtn = $("#btn-change-password");
-if (pwdBtn) pwdBtn.addEventListener("click", () => {
-    dropdown.classList.remove("show");
-    const oldPwd = prompt("请输入当前密码：");
-    if (!oldPwd) return;
-    const newPwd = prompt("请输入新密码：");
-    if (!newPwd || newPwd.length < 4) { alert("新密码至少4位"); return; }
-    fetch("/api/user/password", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ old_password: oldPwd, new_password: newPwd }) }).then(r => r.json()).then(data => { if (data.error) { alert(data.error); return; } alert("密码已修改，请重新登录"); window.location.href = "/logout"; }).catch(e => alert("修改失败：" + e.message));
-});
-} /* end !__navAvatarInit */
 
-─── Deep Analysis ─── */
+/* ─── Deep Analysis ─── */
 let deepWs = null;
 let deepRunning = false;
 const deepStages = ["数据抓取","评分计算","同行对比","合并同行","博弈分析","合并博弈","渲染HTML","验证结果"];
