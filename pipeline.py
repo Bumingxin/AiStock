@@ -3,8 +3,10 @@ from __future__ import annotations
 import json
 import re
 import time
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
+
+BJT = timezone(timedelta(hours=8))
 from typing import Callable, Dict, Any, Optional, List
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -20,7 +22,7 @@ from news_fetcher import fetch_all_news, news_items_to_text
 
 
 def _ts() -> str:
-    return datetime.now().strftime("%Y%m%d_%H%M%S")
+    return datetime.now(BJT).strftime("%Y%m%d_%H%M%S")
 
 
 def _emit(stage_cb, stage, detail, counts=None):

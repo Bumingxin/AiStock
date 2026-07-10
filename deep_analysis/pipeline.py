@@ -4,9 +4,11 @@ from __future__ import annotations
 import json
 import subprocess
 import sys
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
+
+BJT = timezone(timedelta(hours=8))
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 SCRIPTS_DIR = Path(__file__).resolve().parent / "scripts"
@@ -25,7 +27,7 @@ class DeepAnalysisPipeline:
         self.output_dir = Path(output_dir) if output_dir else PROJECT_ROOT / "outputs"
         self.work_dir.mkdir(parents=True, exist_ok=True)
         self.output_dir.mkdir(parents=True, exist_ok=True)
-        date_str = datetime.now().strftime("%Y%m%d")
+        date_str = datetime.now(BJT).strftime("%Y%m%d")
         self.raw_json = self.work_dir / f"{stock_code}_raw.json"
         self.dash_json = self.work_dir / f"{stock_code}_dash.json"
         self.peers_json = self.work_dir / f"{stock_code}_peers.json"
@@ -65,7 +67,7 @@ class DeepAnalysisPipeline:
             stock_name = str(dash.get("title", "")).strip()
             if not stock_name:
                 return
-            date_str = datetime.now().strftime("%Y%m%d")
+            date_str = datetime.now(BJT).strftime("%Y%m%d")
             safe_name = stock_name.replace("/", "_").replace(chr(92), "_")
             new_path = self.output_dir / f"{safe_name}_{self.stock_code}_{date_str}.html"
             self.html_output = new_path

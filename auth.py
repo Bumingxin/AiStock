@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, Optional
+
+BJT = timezone(timedelta(hours=8))
 
 from fastapi import Request
 from fastapi.responses import RedirectResponse
@@ -20,7 +22,7 @@ def create_session(user: Dict[str, Any]) -> str:
         "username": user["username"],
         "is_admin": bool(user.get("is_admin", 0)),
         "points": user.get("points", 0),
-        "created_at": datetime.now().isoformat(),
+        "created_at": datetime.now(BJT).replace(tzinfo=None).isoformat(),
     }
     return session_id
 

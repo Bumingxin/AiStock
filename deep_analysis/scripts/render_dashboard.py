@@ -10,10 +10,13 @@ import json
 import math
 import os
 import re
+
 import shutil
 import subprocess
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
+
+BJT = timezone(timedelta(hours=8))
 
 
 def e(x):
@@ -542,7 +545,7 @@ def stable_output_path(data, requested):
     out_dir = Path(os.environ.get('OPENCLAW_WORKSPACE', '/root/.openclaw/workspace')) / 'outputs'
     out_dir.mkdir(parents=True, exist_ok=True)
     code = re.sub(r'[^0-9A-Za-z]+', '', str(data.get('code') or data.get('symbol') or data.get('title') or 'stock'))[:16] or 'stock'
-    date = re.sub(r'[^0-9]', '', str(data.get('date') or ''))[:8] or datetime.now().strftime('%Y%m%d')
+    date = re.sub(r'[^0-9]', '', str(data.get('date') or ''))[:8] or datetime.now(BJT).strftime('%Y%m%d')
     return out_dir / f'stock_{code}_{date}.html'
 
 
