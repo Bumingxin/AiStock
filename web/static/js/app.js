@@ -758,6 +758,7 @@ function switchTab(name) {
     if (tab) tab.classList.add("active");
     const panel = $(`#tab-${name}`);
     if (panel) panel.classList.add("active");
+    if (name === "deep") loadDeepStockList();
 }
 
 })();

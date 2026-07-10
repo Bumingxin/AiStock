@@ -806,7 +806,7 @@ async def deep_analysis_download(filename: str, request: Request):
     if user is None:
         return JSONResponse({"error": "请先登录"}, status_code=401)
     import re as _re
-    safe = _re.sub(r'[^0-9A-Za-z_\-\.]', '', filename)
+    safe = _re.sub(r'[^0-9A-Za-z_\-\.\u4e00-\u9fff]', '', filename)
     if not safe or not safe.endswith(".html"):
         return JSONResponse({"error": "无效文件名"}, status_code=400)
     file_path = Path(__file__).resolve().parent.parent / "outputs" / safe
@@ -822,7 +822,7 @@ async def deep_analysis_view(filename: str, request: Request):
     if user is None:
         return JSONResponse({"error": "请先登录"}, status_code=401)
     import re as _re
-    safe = _re.sub(r'[^0-9A-Za-z_\-\.]', '', filename)
+    safe = _re.sub(r'[^0-9A-Za-z_\-\.\u4e00-\u9fff]', '', filename)
     if not safe or not safe.endswith(".html"):
         return JSONResponse({"error": "无效文件名"}, status_code=400)
     file_path = Path(__file__).resolve().parent.parent / "outputs" / safe
