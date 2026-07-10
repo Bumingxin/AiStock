@@ -28,6 +28,7 @@ let selectedStockIndex = -1;
 let chatHistory = [];
 let allResults = [];
 let allReports = [];
+let deepResult = null;
 
 const $ = s => document.querySelector(s);
 const $$ = s => document.querySelectorAll(s);
@@ -659,6 +660,7 @@ async function stopDeepAnalysis() {
 
 function renderDeepResult(r) {
     if (!r) return;
+    deepResult = r;
     const iframeWrap = $("#deep-iframe-wrap");
     const iframe = $("#deep-iframe");
     const logArea = $("#deep-log-area");
@@ -690,6 +692,15 @@ function exportDeepPdf() {
         return;
     }
     try {
+        if (deepResult && iframe.contentDocument) {
+            const name = deepResult.title || "";
+            const code = deepResult.code || "";
+            const path = deepResult.html_path || "";
+            const dateMatch = path.match(/(\d{8})\.html/);
+            const date = dateMatch ? dateMatch[1] : new Date().toISOString().slice(0,10).replace(/-/g,"");
+            const pdfName = [name, code, date].filter(Boolean).join("_");
+            if (pdfName) iframe.contentDocument.title = pdfName;
+        }
         iframe.contentWindow.print();
     } catch(e) {
         alert("PDF 导出失败，请确保报告已加载完成");
