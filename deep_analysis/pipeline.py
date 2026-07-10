@@ -30,7 +30,7 @@ class DeepAnalysisPipeline:
         self.dash_json = self.work_dir / f"{stock_code}_dash.json"
         self.peers_json = self.work_dir / f"{stock_code}_peers.json"
         self.debate_json = self.work_dir / f"{stock_code}_ai_debate.json"
-        self.html_output = self.output_dir / f"stock_{stock_code}_{date_str}.html"
+        self.html_output = self.output_dir / f"{stock_code}_{date_str}.html"
         self._summary: Optional[Dict[str, Any]] = None
 
     def _run_script(self, script_name: str, args: List[str],
@@ -55,6 +55,22 @@ class DeepAnalysisPipeline:
             if stage_cb:
                 stage_cb(stage_name, f"异常: {e}", error=True)
             return False
+
+    def _update_html_path_from_dash(self):
+        """Update html_output filename using stock name from dash JSON."""
+        if not self.dash_json.exists():
+            return
+        try:
+            dash = json.loads(self.dash_json.read_text(encoding="utf-8"))
+            stock_name = str(dash.get("title", "")).strip()
+            if not stock_name:
+                return
+            date_str = datetime.now().strftime("%Y%m%d")
+            safe_name = stock_name.replace("/", "_").replace(chr(92), "_")
+            new_path = self.output_dir / f"{safe_name}_{self.stock_code}_{date_str}.html"
+            self.html_output = new_path
+        except Exception:
+            pass
 
     def step_fetch_data(self, stage_cb=None) -> bool:
         args = ["--code", self.stock_code, "--market", self.market, "--out", str(self.raw_json)]
@@ -130,6 +146,8 @@ class DeepAnalysisPipeline:
                 cb(name, f"流水线在 '{name}' 步骤失败", error=True)
                 return False
             cb(name, f"{name} 完成")
+            if name == "评分计算":
+                self._update_html_path_from_dash()
         self._build_summary()
         return True
 

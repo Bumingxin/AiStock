@@ -212,6 +212,7 @@ function loadResults() {
         allReports = allResults.all_reports || [];
         renderDashboard(allResults, data.market);
         renderChatSelect(allResults);
+        loadDeepStockList();
     }).catch(() => {});
 }
 

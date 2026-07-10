@@ -355,10 +355,7 @@ async def start_analysis(request: Request):
             user = get_session_user(request.cookies.get(COOKIE_NAME))
             if user:
                 final_list = result.get("final_list", [])
-                title = f"分析_{_now_bjt_fmt('%m%d_%H%M')}"
-                if final_list:
-                    codes = [f.get("code", "") for f in final_list[:3]]
-                    title = f"分析_{'+'.join(codes)}_{_now_bjt_fmt('%m%d_%H%M')}"
+                title = f"量化分析报告_{_now_bjt_fmt('%Y%m%d')}"
                 save_analysis(
                     user_id=user["id"],
                     title=title,

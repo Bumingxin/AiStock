@@ -504,7 +504,7 @@ def render(d):
     css = get_css()
     js = get_js()
 
-    return f'''<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{e(d.get('title'))} 股票看板</title><style>{css}</style></head><body><div class="page">
+    return f'''<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{e(d.get('title'))}_{e(d.get('code'))}_{e(d.get('date'))}</title><style>{css}</style></head><body><div class="page">
 <nav class="nav"><a href="#overview" class="active">总览</a><a href="#kline">K线</a><a href="#trade">买卖点</a><a href="#score">评分</a><a href="#finance">财务</a><a href="#risk">风险</a><a href="#debate">博弈</a><a href="#peer">同行</a><a href="#source">数据</a></nav>
 <section class="hero" id="overview"><div class="top"><div><div class="eyebrow">China Stock Visual Dashboard · {e(d.get('date'))}</div><h1>{e(d.get('title'))} {e(d.get('code'))}</h1><div class="sub">{e(d.get('industry'))} · {e(d.get('market'))}</div><div class="verdict">{e(d.get('verdict'))}</div><div class="hero-badges"><span class="badge">当前动作：{action}</span><span class="badge">风险等级：{risk}</span><span class="badge">评分：{score:.1f}/10</span></div></div>{ring_svg(score)}</div></section>
 <section class="section quick"><div class="card good"><b>这家公司是干嘛的？</b><span>{e(first_summary)}</span></div><div class="card neutral"><b>现在贵不贵？</b><span>{e(valuation_note)}</span></div><div class="card good"><b>现在看什么？</b><span>{e(tracker)}</span></div><div class="card bad"><b>最大风险？</b><span>{e(first_risk)}</span></div></section>

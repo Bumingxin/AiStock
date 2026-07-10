@@ -96,9 +96,9 @@ python -m uvicorn web.app:app --host 0.0.0.0 --port 8000
 
 ```json
 {
-  "openai_base_url": "https://api.openai.com/v1",
+  "openai_base_url": "your_api_rul_here",
   "openai_api_key": "your_api_key_here",
-  "model": "gpt-4o",
+  "model": "your_model_name_here",
   "top_sectors": 5,
   "top_stocks": 20,
   "min_per_sector": 2,
