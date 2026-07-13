@@ -93,6 +93,7 @@ for dir in data results deep_work outputs; do
     mkdir -p "$dir"
     chmod 777 "$dir"
 done
+chmod 666 config.json
 ok "目录权限就绪"
 
 # ── 6. 启动容器 ─────────────────────────────────────────────
@@ -106,16 +107,6 @@ docker run -d \
     -v "$(pwd)/results:/app/results" \
     -v "$(pwd)/deep_work:/app/deep_work" \
     -v "$(pwd)/outputs:/app/outputs" \
-    -v "$(pwd)/config.py:/app/config.py:ro" \
-    -v "$(pwd)/database.py:/app/database.py:ro" \
-    -v "$(pwd)/auth.py:/app/auth.py:ro" \
-    -v "$(pwd)/pipeline.py:/app/pipeline.py:ro" \
-    -v "$(pwd)/llm_client.py:/app/llm_client.py:ro" \
-    -v "$(pwd)/data_source.py:/app/data_source.py:ro" \
-    -v "$(pwd)/news_fetcher.py:/app/news_fetcher.py:ro" \
-    -v "$(pwd)/chat_engine.py:/app/chat_engine.py:ro" \
-    -v "$(pwd)/web:/app/web:ro" \
-    -v "$(pwd)/deep_analysis:/app/deep_analysis:ro" \
     "$IMAGE_NAME"
 
 # ── 7. 等待启动 ─────────────────────────────────────────────
