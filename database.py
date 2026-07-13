@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import base64
 import hashlib
+import os
 import sqlite3
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 BJT = timezone(timedelta(hours=8))
 def _now_bjt() -> str:
@@ -117,8 +120,28 @@ def get_admin_logs(limit: int = 500) -> List[Dict[str, Any]]:
 
 
 def hash_password(password: str) -> str:
-    """SHA256 hash a password."""
-    return hashlib.sha256(password.encode("utf-8")).hexdigest()
+    """PBKDF2-SHA256 hash a password with random salt."""
+    salt = os.urandom(16)
+    dk = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), salt, iterations=260000)
+    return base64.b64encode(salt + dk).decode('ascii')
+
+
+def verify_password(password: str, stored_hash: str) -> bool:
+    """Verify a password against a PBKDF2-SHA256 stored hash."""
+    try:
+        raw = base64.b64decode(stored_hash)
+        if len(raw) < 17:
+            return False
+        salt, dk = raw[:16], raw[16:]
+        new_dk = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), salt, iterations=260000)
+        return new_dk == dk
+    except Exception:
+        return False
+
+
+def _is_legacy_sha256(h: str) -> bool:
+    """Check if a hash looks like a plain SHA256 hex string (old format)."""
+    return len(h) == 64 and all(c in '0123456789abcdef' for c in h)
 
 
 def create_user(username: str, password: str, points: int = 0, is_admin: bool = False) -> Dict[str, Any]:
@@ -144,8 +167,15 @@ def authenticate_user(username: str, password: str) -> Optional[Dict[str, Any]]:
         row = conn.execute("SELECT * FROM users WHERE username = ?", (username,)).fetchone()
         if row is None:
             return None
-        if row["password_hash"] != hash_password(password):
-            return None
+        stored = row["password_hash"]
+        if _is_legacy_sha256(stored):
+            if stored != hashlib.sha256(password.encode("utf-8")).hexdigest():
+                return None
+            new_hash = hash_password(password)
+            conn.execute("UPDATE users SET password_hash = ? WHERE id = ?", (new_hash, row["id"]))
+        else:
+            if not verify_password(password, stored):
+                return None
         now = _now_bjt()
         conn.execute("UPDATE users SET last_login = ? WHERE id = ?", (now, row["id"]))
         conn.commit()
@@ -164,37 +194,18 @@ def get_user_by_id(user_id: int) -> Optional[Dict[str, Any]]:
         conn.close()
 
 
-def get_user_points(user_id: int) -> Optional[int]:
-    """Fetch user's points balance."""
+def list_users() -> List[Dict[str, Any]]:
+    """List all users."""
     conn = get_conn()
     try:
-        row = conn.execute("SELECT points FROM users WHERE id = ?", (user_id,)).fetchone()
-        return row["points"] if row else None
-    finally:
-        conn.close()
-
-
-def deduct_points(user_id: int, amount: int, action_type: str, detail: str = "") -> bool:
-    """Check balance, deduct points, and log usage. Return True on success."""
-    conn = get_conn()
-    try:
-        row = conn.execute("SELECT points FROM users WHERE id = ?", (user_id,)).fetchone()
-        if row is None or row["points"] < amount:
-            return False
-        conn.execute("UPDATE users SET points = points - ? WHERE id = ?", (amount, user_id))
-        now = _now_bjt()
-        conn.execute(
-            "INSERT INTO usage_logs (user_id, action_type, points_cost, created_at, detail) VALUES (?, ?, ?, ?, ?)",
-            (user_id, action_type, amount, now, detail)
-        )
-        conn.commit()
-        return True
+        rows = conn.execute("SELECT * FROM users ORDER BY id").fetchall()
+        return [dict(r) for r in rows]
     finally:
         conn.close()
 
 
 def add_points(user_id: int, amount: int) -> bool:
-    """Add points to user balance. Return True on success."""
+    """Add points to a user. Return True on success."""
     conn = get_conn()
     try:
         row = conn.execute("SELECT id FROM users WHERE id = ?", (user_id,)).fetchone()
@@ -207,30 +218,31 @@ def add_points(user_id: int, amount: int) -> bool:
         conn.close()
 
 
-def list_users() -> List[Dict[str, Any]]:
-    """List all users."""
+def deduct_points(user_id: int, amount: int, action_type: str = "", detail: str = "") -> bool:
+    """Deduct points if sufficient. Log the usage. Return True on success."""
     conn = get_conn()
     try:
-        rows = conn.execute("SELECT * FROM users ORDER BY id").fetchall()
-        return [dict(r) for r in rows]
+        row = conn.execute("SELECT points FROM users WHERE id = ?", (user_id,)).fetchone()
+        if row is None or row["points"] < amount:
+            return False
+        conn.execute("UPDATE users SET points = points - ? WHERE id = ?", (amount, user_id))
+        conn.execute(
+            "INSERT INTO usage_logs (user_id, action_type, points_cost, created_at, detail) VALUES (?, ?, ?, ?, ?)",
+            (user_id, action_type, amount, _now_bjt(), detail)
+        )
+        conn.commit()
+        return True
     finally:
         conn.close()
 
 
-def get_usage_logs(user_id: int, limit: int = 100) -> List[Dict[str, Any]]:
-    """Fetch usage logs with username."""
+def get_usage_logs(limit: int = 500) -> List[Dict[str, Any]]:
+    """Get recent usage logs."""
     conn = get_conn()
     try:
         rows = conn.execute(
-            """
-            SELECT l.*, u.username
-            FROM usage_logs l
-            JOIN users u ON l.user_id = u.id
-            WHERE l.user_id = ?
-            ORDER BY l.created_at DESC
-            LIMIT ?
-            """,
-            (user_id, limit)
+            "SELECT * FROM usage_logs ORDER BY created_at DESC LIMIT ?",
+            (limit,)
         ).fetchall()
         return [dict(r) for r in rows]
     finally:
@@ -373,4 +385,3 @@ def get_user_usage_logs(user_id: int, limit: int = 100) -> List[Dict[str, Any]]:
 
 
 _ensure_db()
-

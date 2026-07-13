@@ -84,8 +84,16 @@ fi
 
 # ── 5. 构建镜像 ─────────────────────────────────────────────
 info "构建 Docker 镜像 (首次可能需要几分钟)..."
-docker build --no-cache -t "$IMAGE_NAME" .
+docker build -t "$IMAGE_NAME" .
 ok "镜像构建完成"
+
+# ── 5.5 确保数据目录存在且可写 ────────────────────────────────
+info "确保数据目录权限..."
+for dir in data results deep_work outputs; do
+    mkdir -p "$dir"
+    chmod 777 "$dir"
+done
+ok "目录权限就绪"
 
 # ── 6. 启动容器 ─────────────────────────────────────────────
 info "启动容器..."
@@ -98,6 +106,16 @@ docker run -d \
     -v "$(pwd)/results:/app/results" \
     -v "$(pwd)/deep_work:/app/deep_work" \
     -v "$(pwd)/outputs:/app/outputs" \
+    -v "$(pwd)/config.py:/app/config.py:ro" \
+    -v "$(pwd)/database.py:/app/database.py:ro" \
+    -v "$(pwd)/auth.py:/app/auth.py:ro" \
+    -v "$(pwd)/pipeline.py:/app/pipeline.py:ro" \
+    -v "$(pwd)/llm_client.py:/app/llm_client.py:ro" \
+    -v "$(pwd)/data_source.py:/app/data_source.py:ro" \
+    -v "$(pwd)/news_fetcher.py:/app/news_fetcher.py:ro" \
+    -v "$(pwd)/chat_engine.py:/app/chat_engine.py:ro" \
+    -v "$(pwd)/web:/app/web:ro" \
+    -v "$(pwd)/deep_analysis:/app/deep_analysis:ro" \
     "$IMAGE_NAME"
 
 # ── 7. 等待启动 ─────────────────────────────────────────────

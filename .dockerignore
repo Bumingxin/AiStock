@@ -11,12 +11,15 @@ dist/
 *.spec
 *.log
 *.log.*
-results/
-.vscode/
-.idea/
-.DS_Store
-Thumbs.db
 
+# === 数据 & 配置（运行时挂载） ===
+config.json
+data/
+results/
+deep_work/
+outputs/
+
+# === 桌面 GUI / 调试脚本（不需要） ===
 gui_app.py
 dashboard.py
 chat_panel.py
@@ -29,6 +32,14 @@ logo.ico
 *.cmd
 *.ps1
 *.ico
+install.sh
+
+# === 参考资料（非运行时代码） ===
+china-stock-deep-analysis/
 PLAN_web_ui.md
 README.md
 LICENSE
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

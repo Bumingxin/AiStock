@@ -33,8 +33,8 @@ def _normalize_config(data: dict) -> dict:
     data = dict(data or {})
     data["enable_realtime_news"] = True
     data.pop("offline_demo", None)
-    if data.get("openai_base_url") in {"https://o.aicli.cn", "http://o.aicli.cn"}:
-        data["openai_base_url"] = "http://o.aicli.cn/v1"
+    if data.get("openai_base_url") in {"https://api.aicli.cn", "http://api.aicli.cn"}:
+        data["openai_base_url"] = "http://api.aicli.cn/v1"
     return {**DEFAULT, **data}
 
 
