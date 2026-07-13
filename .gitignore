@@ -10,6 +10,7 @@ env/
 
 # Runtime data
 data/
+stock_work/
 results/
 deep_work/
 outputs/
@@ -43,3 +44,4 @@ dist/
 # Temporary files
 *.tmp
 *.bak
+
