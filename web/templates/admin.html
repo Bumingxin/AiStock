@@ -399,12 +399,12 @@
                             <td>{{ user.last_login or '从未登录' }}</td>
                             <td>
                                 <div style="display:flex;gap:4px;flex-wrap:wrap">
-                                    <button type="button" class="btn btn-primary" onclick="showChangePasswordModal({{ user.id }}, this.dataset.username)" data-username="{{ user.username }}">修改密码</button>
-                                    <form class="recharge-inline" method="POST" action="/admin/users/{{ user.id }}/add-points" onsubmit="return showRechargeModal(event, {{ user.id }}, this.dataset.username)" data-username="{{ user.username }}">
+                                    <button type="button" class="btn btn-primary" onclick="showChangePasswordModal({{ user.id }}, '{{ user.username }}')">修改密码</button>
+                                    <form class="recharge-inline" method="POST" action="/admin/users/{{ user.id }}/add-points" onsubmit="return showRechargeModal(event, {{ user.id }}, '{{ user.username }}')">
                                         <input type="number" name="points" placeholder="点数" min="1" required>
                                         <button type="submit" class="btn btn-success">充值</button>
                                     </form>
-                                    <button type="button" class="btn btn-outline" onclick="showSetPointsModal({{ user.id }}, this.dataset.username, {{ user.points }})" data-username="{{ user.username }}">修改</button>
+                                    <button type="button" class="btn btn-outline" onclick="showSetPointsModal({{ user.id }}, '{{ user.username }}', {{ user.points }})">修改</button>
                                     {% if user.role != 'admin' %}
                                     <form method="POST" action="/admin/users/{{ user.id }}/delete" style="display:inline">
                                         <button type="submit" class="btn btn-danger" onclick="return confirm('确定删除该用户？')">删除</button>
@@ -807,20 +807,5 @@
         document.getElementById('logs-mgmt-empty').style.display = visible ? 'none' : 'block';
     }
     </script>
-
-<script>
-(function(){
-    function getCsrfToken(){
-        var m=document.cookie.match(/(?:^|; )csrf_token=([^;]*)/);
-        return m?decodeURIComponent(m[1]):'';
-    }
-    document.querySelectorAll('form[method="POST"]').forEach(function(f){
-        var inp=document.createElement('input');
-        inp.type='hidden'; inp.name='csrf_token'; inp.value=getCsrfToken();
-        f.appendChild(inp);
-    });
-})();
-</script>
-
 </body>
 </html>

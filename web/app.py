@@ -11,6 +11,7 @@ BJT = timezone(timedelta(hours=8))
 def _now_bjt() -> str:
     """Return current Beijing time as ISO string without tz suffix."""
     return datetime.now(BJT).replace(tzinfo=None).isoformat()
+    """Return current Beijing time as ISO string without tz suffix."""
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -25,10 +26,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from config import load_config, save_config
 from pipeline import run_pipeline, PipelineCancelled
 from chat_engine import chat_analyze_stock
-import secrets
-from collections import defaultdict
 from auth import login_user, get_session_user, destroy_session, require_login, require_admin, check_and_deduct
-from database import verify_password
 from database import init_admin, create_user, list_users, get_usage_logs, add_points, delete_user, update_user_points, update_user_password, hash_password, save_analysis, get_analysis_history, get_analysis_detail, delete_analysis, get_user_usage_logs, log_admin_action, get_admin_logs
 import database
 from deep_analysis import DeepAnalysisPipeline
@@ -176,76 +174,19 @@ class DeepAnalysisState:
 deep_analysis_state = DeepAnalysisState()
 
 COOKIE_NAME = "session_id"
-CSRF_COOKIE_NAME = "csrf_token"
-
-_login_attempts = defaultdict(list)
-LOGIN_RATE_LIMIT = 5
-LOGIN_RATE_WINDOW = 300
-
-def _generate_csrf_token():
-    return secrets.token_hex(32)
-
-def _verify_csrf(request):
-    cookie_token = request.cookies.get(CSRF_COOKIE_NAME)
-    header_token = request.headers.get("X-CSRF-Token")
-    if not cookie_token or not header_token:
-        return False
-    return secrets.compare_digest(cookie_token, header_token)
-
-def _check_login_rate(ip):
-    import time as _time
-    now = _time.time()
-    _login_attempts[ip] = [t for t in _login_attempts[ip] if now - t < LOGIN_RATE_WINDOW]
-    if len(_login_attempts[ip]) >= LOGIN_RATE_LIMIT:
-        return False
-    _login_attempts[ip].append(now)
-    return True
-
-async def _ws_require_login(websocket):
-    sid = websocket.cookies.get(COOKIE_NAME)
-    if not sid:
-        return None
-    return get_session_user(sid)
 
 def _resolve_session(request: Request, response=None) -> SessionState:
     session_id = request.cookies.get(COOKIE_NAME)
     session = manager.get_or_create_session(session_id)
     if response and session.session_id != session_id:
-        response.set_cookie(COOKIE_NAME, session.session_id, max_age=SESSION_TTL, httponly=True, samesite="Lax")
+        response.set_cookie(COOKIE_NAME, session.session_id, max_age=SESSION_TTL, httponly=False, samesite="Lax")
     return session
 
 
-@app.middleware("http")
-async def security_middleware(request, call_next):
-    is_ws = request.headers.get("upgrade", "").lower() == "websocket"
-    if not is_ws and request.method in ("POST", "PUT", "PATCH", "DELETE"):
-        if not _verify_csrf(request):
-            return JSONResponse({"error": "CSRF验证失败"}, status_code=403)
-    response = await call_next(request)
-    if not is_ws and CSRF_COOKIE_NAME not in request.cookies:
-        response.set_cookie(CSRF_COOKIE_NAME, _generate_csrf_token(), max_age=SESSION_TTL, httponly=False, samesite="Lax")
-    response.headers["X-Content-Type-Options"] = "nosniff"
-    response.headers["X-Frame-Options"] = "DENY"
-    response.headers["X-XSS-Protection"] = "1; mode=block"
-    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-    csp = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' ws: wss:"
-    response.headers["Content-Security-Policy"] = csp
-    return response
-
 @app.on_event("startup")
 async def save_loop():
-    import asyncio as _asyncio
     manager._loop = asyncio.get_event_loop()
     init_admin()
-    async def _periodic_cleanup():
-        while True:
-            await _asyncio.sleep(600)
-            manager.cleanup_expired()
-            now = __import__("time").time()
-            expired = [k for k, v in list(_login_attempts.items()) if not v or (v and now - v[-1] > LOGIN_RATE_WINDOW)]
-            for k in expired:
-                _login_attempts.pop(k, None)
-    _asyncio.create_task(_periodic_cleanup())
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -267,9 +208,6 @@ async def login_page(request: Request):
 
 @app.post("/login")
 async def login_submit(request: Request):
-    client_ip = request.client.host if request.client else "unknown"
-    if not _check_login_rate(client_ip):
-        return templates.TemplateResponse(request, "login.html", {"error": "登录尝试过于频繁，请5分钟后再试"})
     form = await request.form()
     username = form.get("username", "")
     password = form.get("password", "")
@@ -279,7 +217,7 @@ async def login_submit(request: Request):
     user = get_session_user(session_id)
     redirect_url = "/admin" if user and user.get("is_admin") else "/"
     response = RedirectResponse(url=redirect_url, status_code=302)
-    response.set_cookie(COOKIE_NAME, session_id, max_age=SESSION_TTL, httponly=True, samesite="Lax")
+    response.set_cookie(COOKIE_NAME, session_id, max_age=SESSION_TTL, httponly=False, samesite="Lax")
     return response
 
 
@@ -290,27 +228,20 @@ async def logout(request: Request):
         destroy_session(session_id)
     response = RedirectResponse(url="/login", status_code=302)
     response.delete_cookie(COOKIE_NAME)
-    response.delete_cookie(CSRF_COOKIE_NAME)
     return response
 
 
 @app.get("/api/config")
 async def get_config(request: Request):
-    user = require_login(request)
-    if user is None:
-        return JSONResponse({"error": "未登录"}, status_code=401)
     session = _resolve_session(request)
     cfg = dict(session.config)
     if cfg.get("openai_api_key"):
-        cfg["openai_api_key"] = cfg["openai_api_key"][:4] + "****"
+        cfg["openai_api_key"] = cfg["openai_api_key"][:8] + "****"
     return cfg
 
 
 @app.post("/api/config")
 async def save_config_api(request: Request):
-    user = require_admin(request)
-    if user is None:
-        return JSONResponse({"error": "需要管理员权限"}, status_code=403)
     data = await request.json()
     int_keys = {
         "top_sectors", "top_stocks", "min_per_sector", "max_per_sector",
@@ -550,7 +481,7 @@ async def change_password(request: Request):
     conn = database.get_conn()
     try:
         row = conn.execute("SELECT password_hash FROM users WHERE id = ?", (user["id"],)).fetchone()
-        if not row or not verify_password(old_password, row["password_hash"]):
+        if not row or row["password_hash"] != hash_password(old_password):
             return JSONResponse({"error": "当前密码错误"}, status_code=400)
         conn.execute("UPDATE users SET password_hash = ? WHERE id = ?", (hash_password(new_password), user["id"]))
         conn.commit()
@@ -903,10 +834,7 @@ async def deep_analysis_view(filename: str, request: Request):
 @app.websocket("/ws/deep-logs")
 async def websocket_deep_logs(websocket: WebSocket):
     await websocket.accept()
-    user = await _ws_require_login(websocket)
-    if user is None:
-        await websocket.close(code=4001, reason="未登录")
-        return
+    session_id = websocket.cookies.get(COOKIE_NAME) or websocket.query_params.get("session_id")
     state = deep_analysis_state
     state.log_ws.append(websocket)
     try:
@@ -926,13 +854,7 @@ async def websocket_deep_logs(websocket: WebSocket):
 @app.websocket("/ws/logs")
 async def websocket_logs(websocket: WebSocket):
     await websocket.accept()
-    user = await _ws_require_login(websocket)
-    if user is None:
-        await websocket.close(code=4001, reason="未登录")
-        return
-    session_id = websocket.cookies.get(COOKIE_NAME)
-    if not session_id:
-        return
+    session_id = websocket.cookies.get(COOKIE_NAME) or websocket.query_params.get("session_id")
     session = manager.get_or_create_session(session_id)
     session.log_ws.append(websocket)
     try:

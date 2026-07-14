@@ -84,17 +84,8 @@ fi
 
 # ── 5. 构建镜像 ─────────────────────────────────────────────
 info "构建 Docker 镜像 (首次可能需要几分钟)..."
-docker build -t "$IMAGE_NAME" .
+docker build --no-cache -t "$IMAGE_NAME" .
 ok "镜像构建完成"
-
-# ── 5.5 确保数据目录存在且可写 ────────────────────────────────
-info "确保数据目录权限..."
-for dir in data results deep_work outputs; do
-    mkdir -p "$dir"
-    chmod 777 "$dir"
-done
-chmod 666 config.json
-ok "目录权限就绪"
 
 # ── 6. 启动容器 ─────────────────────────────────────────────
 info "启动容器..."

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime, timezone, timedelta
-import time as _time
 from typing import Any, Dict, Optional
 
 BJT = timezone(timedelta(hours=8))
@@ -28,8 +27,6 @@ def create_session(user: Dict[str, Any]) -> str:
     return session_id
 
 
-SESSION_TTL = 86400
-
 def get_session_user(session_id: str) -> Optional[Dict[str, Any]]:
     """Validate session and return user info dict, or None if expired/invalid."""
     if not session_id:
@@ -37,17 +34,6 @@ def get_session_user(session_id: str) -> Optional[Dict[str, Any]]:
     data = SESSION_STORE.get(session_id)
     if data is None:
         return None
-    created = data.get("created_at", "")
-    if created:
-        try:
-            from datetime import datetime
-            ct = datetime.fromisoformat(created)
-            age = (_time.time() - ct.timestamp())
-            if age > SESSION_TTL:
-                SESSION_STORE.pop(session_id, None)
-                return None
-        except Exception:
-            pass
     user = database.get_user_by_id(data["user_id"])
     if user is None:
         SESSION_STORE.pop(session_id, None)

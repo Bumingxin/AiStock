@@ -12,14 +12,14 @@ function setCookie(name, value, days) {
     document.cookie = `${name}=${encodeURIComponent(value)};expires=${d.toUTCString()};path=/;SameSite=Lax`;
 }
 function ensureSession() {
-    return getCookie("session_id") || "";
+    let sid = getCookie("session_id");
+    if (!sid) {
+        sid = crypto.randomUUID().replace(/-/g, "");
+        setCookie("session_id", sid, 1);
+    }
+    return sid;
 }
 ensureSession();
-
-function getCsrfToken() {
-    var m = document.cookie.match(/(?:^|; )csrf_token=([^;]*)/);
-    return m ? decodeURIComponent(m[1]) : '';
-}
 
 let ws = null;
 let timerInterval = null;
@@ -57,7 +57,8 @@ function syncTabFromHash() {
 /* ─── WebSocket ─── */
 function connectWS() {
     const protocol = location.protocol === "https:" ? "wss:" : "ws:";
-    ws = new WebSocket(`${protocol}//${location.host}/ws/logs`);
+    const sid = getCookie("session_id") || "";
+    ws = new WebSocket(`${protocol}//${location.host}/ws/logs?session_id=${sid}`);
     ws.onopen = () => { ws.send("ping"); };
     ws.onmessage = (e) => {
         try {
@@ -169,7 +170,7 @@ $("#btn-run").addEventListener("click", async () => {
     $("#log-area").innerHTML = "";
 
     try {
-        const resp = await fetch("/api/analyze", { method: "POST", headers:{"X-CSRF-Token":getCsrfToken()},credentials: "include" });
+        const resp = await fetch("/api/analyze", { method: "POST", credentials: "include" });
         const data = await resp.json();
         if (!resp.ok) {
             alert(data.error || "启动失败");
@@ -189,7 +190,7 @@ $("#btn-stop").addEventListener("click", async () => {
     btn.textContent = "停止中...";
 
     try {
-        const resp = await fetch("/api/stop", { method: "POST", headers:{"X-CSRF-Token":getCsrfToken()},credentials: "include" });
+        const resp = await fetch("/api/stop", { method: "POST", credentials: "include" });
         if (!resp.ok) {
             const data = await resp.json();
             alert(data.error || "停止失败");
@@ -207,7 +208,7 @@ $("#btn-stop").addEventListener("click", async () => {
 
 /* ─── Dashboard ─── */
 function loadResults() {
-    fetch("/api/results", { headers:{"X-CSRF-Token":getCsrfToken()},credentials: "include" }).then(r => r.json()).then(data => {
+    fetch("/api/results", { credentials: "include" }).then(r => r.json()).then(data => {
         allResults = data.results || {};
         allReports = allResults.all_reports || [];
         renderDashboard(allResults, data.market);
@@ -451,7 +452,7 @@ async function sendChat(question) {
         const resp = await fetch("/api/chat", {
             method: "POST",
             credentials: "include",
-            headers: {'X-CSRF-Token': getCsrfToken(),  "Content-Type": "application/json" },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ stock: report, history: chatHistory, question }),
         });
         const data = await resp.json();
@@ -505,7 +506,7 @@ syncTabFromHash();
 window.addEventListener("hashchange", syncTabFromHash);
 connectWS();
 loadResults();
-fetch("/api/status", { headers:{"X-CSRF-Token":getCsrfToken()},credentials: "include" }).then(r => r.json()).then(s => {
+fetch("/api/status", { credentials: "include" }).then(r => r.json()).then(s => {
     if (s.running) {
         setRunningUI(true);
         startTimer();
@@ -521,7 +522,8 @@ const deepStages = ["数据抓取","评分计算","同行对比","合并同行",
 function connectDeepWS() {
     if (deepWs && deepWs.readyState <= 1) return;
     const protocol = location.protocol === "https:" ? "wss:" : "ws:";
-        deepWs = new WebSocket(`${protocol}//${location.host}/ws/deep-logs`);
+    const sid = getCookie("session_id") || "";
+    deepWs = new WebSocket(`${protocol}//${location.host}/ws/deep-logs?session_id=${sid}`);
     deepWs.onopen = () => { deepWs.send("ping"); };
     deepWs.onmessage = (e) => {
         try { handleDeepWSMessage(JSON.parse(e.data)); } catch(err) {}
@@ -634,7 +636,7 @@ async function startDeepAnalysis() {
         const resp = await fetch("/api/deep-analysis/start", {
             method: "POST",
             credentials: "include",
-            headers: {'X-CSRF-Token': getCsrfToken(),  "Content-Type": "application/json" },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ code: code.trim(), quick }),
         });
         const data = await resp.json();
@@ -652,7 +654,7 @@ async function startDeepAnalysis() {
 
 async function stopDeepAnalysis() {
     try {
-        await fetch("/api/deep-analysis/stop", { method: "POST", headers:{"X-CSRF-Token":getCsrfToken()},credentials: "include" });
+        await fetch("/api/deep-analysis/stop", { method: "POST", credentials: "include" });
     } catch(e) {}
 }
 
@@ -737,7 +739,7 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 function loadDeepStockList() {
-    fetch("/api/results", { headers:{"X-CSRF-Token":getCsrfToken()},credentials: "include" }).then(r => r.json()).then(data => {
+    fetch("/api/results", { credentials: "include" }).then(r => r.json()).then(data => {
         const select = $("#deep-stock-select");
         if (!select) return;
         const reports = data.results?.all_reports || [];
