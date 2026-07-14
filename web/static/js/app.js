@@ -664,7 +664,7 @@ function renderDeepResult(r) {
     const iframeWrap = $("#deep-iframe-wrap");
     const iframe = $("#deep-iframe");
     const logArea = $("#deep-log-area");
-    if (r.html_exists && r.view_url) {
+    if (r.view_url) {
         if (iframe) iframe.src = r.view_url;
         if (iframeWrap) iframeWrap.style.display = "flex";
         if (logArea) logArea.style.display = "none";

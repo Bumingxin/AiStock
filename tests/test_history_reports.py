@@ -207,8 +207,42 @@ def test_persist_deep_report_cleans_html_when_history_save_fails(tmp_path, monke
     assert not html_path.exists()
 
 
+def test_persist_deep_report_returns_embeddable_result(isolated_app):
+    _, user, _, _, outputs_dir = isolated_app
+    html_path = outputs_dir / "中信证券_600030_20260714_143000_ab12cd34.html"
+    html_path.write_text("<html>report</html>", encoding="utf-8")
+    summary = {"html_path": str(html_path), "html_exists": False, "title": "中信证券"}
+
+    result = web_app._persist_deep_report(user["id"], 30, "600030", summary)
+
+    assert result["html_exists"] is True
+    assert result["view_url"] == f"/api/history/{result['history_id']}/view"
+    assert result["download_url"] == f"/api/history/{result['history_id']}/download"
+    assert "html_path" not in result
+
+
+def test_deep_pipeline_maps_config_to_debate_env(tmp_path):
+    pipeline = DeepAnalysisPipeline(
+        "600030",
+        work_dir=str(tmp_path / "work"),
+        output_dir=str(tmp_path / "outputs"),
+        llm_config={
+            "openai_api_key": "sk-test-key",
+            "openai_base_url": "https://api.xiaomimimo.com/v1",
+            "model": "mimo-v2.5",
+        },
+    )
+
+    env = pipeline._script_env("debate_engine.py")
+
+    assert env["OPENAI_API_KEY"] == "sk-test-key"
+    assert env["OPENAI_BASE_URL"] == "https://api.xiaomimimo.com/v1"
+    assert env["DEBATE_MODEL"] == "mimo-v2.5"
+
+
 def test_main_deep_result_uses_controlled_history_urls():
     script = Path("web/static/js/app.js").read_text(encoding="utf-8")
 
+    assert "if (r.view_url)" in script
     assert "r.view_url" in script
     assert "r.download_url" in script

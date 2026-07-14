@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 import uuid
@@ -18,12 +19,14 @@ SCRIPTS_DIR = Path(__file__).resolve().parent / "scripts"
 class DeepAnalysisPipeline:
     def __init__(self, stock_code: str, market: str = "a", industry: str = "",
                  quick: bool = False, no_debate: bool = False,
-                 work_dir: str = "", output_dir: str = ""):
+                 work_dir: str = "", output_dir: str = "",
+                 llm_config: Optional[Dict[str, Any]] = None):
         self.stock_code = stock_code
         self.market = market
         self.industry = industry
         self.quick = quick
         self.no_debate = no_debate
+        self.llm_config = dict(llm_config or {})
         self.work_dir = Path(work_dir) if work_dir else PROJECT_ROOT / "deep_work"
         self.output_dir = Path(output_dir) if output_dir else PROJECT_ROOT / "outputs"
         self.work_dir.mkdir(parents=True, exist_ok=True)
@@ -41,11 +44,12 @@ class DeepAnalysisPipeline:
                     stage_cb: Optional[Callable] = None, stage_name: str = "") -> bool:
         script_path = SCRIPTS_DIR / script_name
         cmd = [sys.executable, str(script_path)] + args
+        env = self._script_env(script_name)
         try:
             if stage_cb:
                 stage_cb(stage_name, f"执行 {script_name}...")
             result = subprocess.run(cmd, capture_output=True, text=True,
-                                    timeout=180, cwd=str(PROJECT_ROOT))
+                                    timeout=180, cwd=str(PROJECT_ROOT), env=env)
             if result.returncode != 0:
                 if stage_cb:
                     stage_cb(stage_name, f"失败: {result.stderr[:300]}", error=True)
@@ -59,6 +63,20 @@ class DeepAnalysisPipeline:
             if stage_cb:
                 stage_cb(stage_name, f"异常: {e}", error=True)
             return False
+
+    def _script_env(self, script_name: str) -> Dict[str, str]:
+        env = os.environ.copy()
+        if script_name == "debate_engine.py":
+            api_key = str(self.llm_config.get("openai_api_key") or "").strip()
+            base_url = str(self.llm_config.get("openai_base_url") or "").strip()
+            model = str(self.llm_config.get("model") or "").strip()
+            if api_key and api_key != "your_api_key":
+                env["OPENAI_API_KEY"] = api_key
+            if base_url and base_url != "http://your_base_url/v1":
+                env["OPENAI_BASE_URL"] = base_url
+            if model and model != "your_model_name":
+                env["DEBATE_MODEL"] = model
+        return env
 
     def _update_html_path_from_dash(self):
         """Update html_output filename using stock name from dash JSON."""

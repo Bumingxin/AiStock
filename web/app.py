@@ -217,6 +217,7 @@ def _persist_deep_report(user_id: int, points_cost: int, stock_code: str, summar
         raise
     public_summary = dict(summary)
     public_summary.pop("html_path", None)
+    public_summary["html_exists"] = html_path.is_file() and html_path.stat().st_size > 0
     public_summary["history_id"] = history_id
     public_summary["view_url"] = f"/api/history/{history_id}/view"
     public_summary["download_url"] = f"/api/history/{history_id}/download"
@@ -854,6 +855,7 @@ async def start_deep_analysis(request: Request):
                 industry=industry,
                 quick=quick,
                 no_debate=no_debate,
+                llm_config=cfg,
             )
             success = pipeline.run(stage_callback=stage_cb)
             if state.cancel_event.is_set():
