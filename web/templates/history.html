@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>历史报告 - AI量化选股系统</title>
+    <link rel="stylesheet" href="/static/css/style.css?v=4">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+    .history-wrap{padding:30px 0;min-height:calc(100vh - 100px)}
+    .history-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:30px}
+    .history-header h2{font-size:22px;color:#1f2937}
+    .history-table{width:100%;border-collapse:collapse;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,.08)}
+    .history-table th{background:#f8fafc;color:#667085;font-size:13px;font-weight:600;padding:14px 16px;text-align:left;border-bottom:2px solid #e5e7eb}
+    .history-table td{padding:14px 16px;font-size:14px;color:#1f2937;border-bottom:1px solid #f1f5f9;cursor:pointer;transition:background .15s}
+    .history-table tr:hover td{background:#f8fafc}
+    .history-table tr:last-child td{border-bottom:none}
+    .col-index{width:60px;text-align:center}
+    .col-date{width:180px}
+    .col-type{width:110px;text-align:center}
+    .col-points{width:100px;text-align:center}
+    .col-summary{min-width:300px}
+    .col-actions{width:120px;text-align:center;white-space:nowrap}
+    .points-badge{display:inline-block;padding:2px 8px;background:#fef3c7;color:#d97706;border-radius:4px;font-size:12px;font-weight:600}
+    .type-badge{display:inline-block;padding:3px 8px;border-radius:4px;font-size:12px;font-weight:600}
+    .type-quantitative{background:#dcfce7;color:#15803d}
+    .type-deep{background:#dbeafe;color:#1d4ed8}
+    .btn-view{padding:4px 12px;background:#2f80ed;color:#fff;border:none;border-radius:4px;font-size:12px;cursor:pointer;white-space:nowrap}
+    .btn-view:hover{background:#2563d6}
+    .btn-delete{padding:4px 12px;background:#dc2626;color:#fff;border:none;border-radius:4px;font-size:12px;cursor:pointer;margin-left:4px;white-space:nowrap}
+    .btn-delete:hover{background:#b91c1c}
+    .empty-state{text-align:center;padding:60px 20px;color:#9ca3af;font-size:15px}
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:200}
+    .modal-overlay.show{display:flex}
+    .modal{background:#fff;border-radius:12px;width:900px;max-width:95vw;max-height:85vh;display:flex;flex-direction:column}
+    .modal-overlay:fullscreen .modal{width:100vw;max-width:100vw;height:100vh;max-height:100vh;border-radius:0}
+    .modal-overlay:fullscreen .modal-body{max-height:calc(100vh - 70px)}
+    .modal-header{display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid #e5e7eb}
+    .modal-header h3{font-size:18px}
+    .modal-header-actions{display:flex;align-items:center;gap:8px}
+    .modal-close{width:32px;height:32px;border:none;background:none;cursor:pointer;font-size:20px;color:#667085;border-radius:4px}
+    .modal-close:hover{background:#f5f7fa}
+    .modal-btn{padding:6px 12px;border:1px solid #e5e7eb;background:#fff;border-radius:6px;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:4px;color:#374151}
+    .modal-btn:hover{background:#f5f7fa;border-color:#d1d5db}
+    .modal-btn svg{width:14px;height:14px}
+    .modal-body{padding:24px;overflow-y:auto;flex:1}
+    .modal.deep-report{width:min(1400px,96vw);height:92vh;max-height:92vh}
+    .modal.deep-report .modal-body{padding:0;overflow:hidden}
+    #deep-report-frame{display:none;width:100%;flex:1;min-height:0;border:0;background:#fff}
+    .report-section{margin-bottom:20px}
+    .report-section h4{font-size:16px;font-weight:600;color:#2f80ed;margin-bottom:12px}
+    .stock-card{background:#f7f9fc;border:1px solid #e5e7eb;border-radius:10px;padding:16px;margin-bottom:10px}
+    .stock-card .code{font-weight:700;color:#1f2937;font-size:15px}
+    .stock-card .name{color:#667085;margin-left:8px;font-size:15px}
+    .stock-card .sector{color:#2f80ed;font-size:13px;margin-left:8px}
+    .stock-card .price{color:#cf3f3f;font-weight:600;margin-left:12px;font-size:15px}
+    .stock-card .signal{color:#1f9d55;font-size:13px;margin-left:8px}
+    .stock-card .detail{font-size:13px;color:#667085;margin-top:8px;line-height:1.7}
+    .back-btn{padding:8px 16px;border:1px solid #e5e7eb;background:#fff;border-radius:6px;font-size:14px;cursor:pointer;color:#667085;text-decoration:none}
+    .back-btn:hover{background:#f5f7fa}
+    #history-table-wrap{overflow-x:auto}
+    @media(max-width:768px){
+      .history-wrap{width:95%;padding:20px 0}
+      .modal{width:95vw}
+      .history-table{font-size:12px;min-width:760px}
+      .history-table th,.history-table td{padding:10px 8px}
+    }
+    </style>
+</head>
+<body>
+    {% include "_top_nav.html" %}
+
+    <main class="container">
+        <div class="history-header">
+            <h2>历史分析报告</h2>
+        </div>
+        <div id="history-table-wrap">
+            <div class="empty-state">加载中...</div>
+        </div>
+    </main>
+
+    <div id="modal-detail" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="detail-title">报告详情</h3>
+                <div class="modal-header-actions">
+                    <button class="modal-btn" onclick="toggleFullscreen()" title="全屏">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3"/></svg>
+                        全屏
+                    </button>
+                    <button class="modal-btn" id="btn-export-pdf" onclick="exportPDF()" title="导出PDF">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M12 18v-6M9 15l3 3 3-3"/></svg>
+                        PDF
+                    </button>
+                    <button class="modal-btn" id="btn-export-excel" onclick="exportExcel()" title="导出Excel">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h8M8 9h2"/></svg>
+                        Excel
+                    </button>
+                    <button class="modal-btn" id="btn-download-html" onclick="downloadDeepHTML()" title="下载HTML" style="display:none">
+                        HTML
+                    </button>
+                    <button class="modal-close" onclick="closeModal()">✕</button>
+                </div>
+            </div>
+            <div class="modal-body" id="detail-body"></div>
+            <iframe id="deep-report-frame" title="深度分析报告"></iframe>
+        </div>
+    </div>
+
+    <script>
+
+
+    let currentDetail = null;
+    let currentTitle = '';
+    let currentReportType = 'quantitative';
+    let currentHistoryId = null;
+
+    function loadHistory() {
+        fetch("/api/history", { credentials: "include" }).then(r => r.json()).then(data => {
+            const wrap = document.getElementById("history-table-wrap");
+            const history = data.history || [];
+            if (!history.length) {
+                wrap.innerHTML = '<div class="empty-state">暂无历史报告</div>';
+                return;
+            }
+            let html = `<table class="history-table">
+                <thead>
+                    <tr>
+                        <th class="col-index">序号</th>
+                        <th class="col-date">日期</th>
+                        <th class="col-type">报告类型</th>
+                        <th class="col-points">扣除点数</th>
+                        <th class="col-summary">报告简介</th>
+                        <th class="col-actions">操作</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+            history.forEach((h, idx) => {
+                const t = new Date(h.created_at);
+                const timeStr = t.toLocaleString("zh-CN");
+                const points = h.points_cost || 0;
+                const summary = h.title || "未命名分析";
+                const reportType = h.report_type === "deep" ? "deep" : "quantitative";
+                const typeLabel = reportType === "deep" ? "深度分析" : "量化分析";
+                html += `<tr>
+                    <td class="col-index">${idx + 1}</td>
+                    <td class="col-date">${timeStr}</td>
+                    <td class="col-type"><span class="type-badge type-${reportType}">${typeLabel}</span></td>
+                    <td class="col-points"><span class="points-badge">-${points}点</span></td>
+                    <td class="col-summary">${summary}</td>
+                    <td class="col-actions">
+                        <button class="btn-view" onclick="viewDetail(${h.id}, '${(h.title||"").replace(/'/g,"\\'")}' , '${reportType}')">查看</button>
+                        <button class="btn-delete" onclick="deleteItem(${h.id}, '${reportType}')">删除</button>
+                    </td>
+                </tr>`;
+            });
+            html += '</tbody></table>';
+            wrap.innerHTML = html;
+        }).catch(() => {
+            document.getElementById("history-table-wrap").innerHTML = '<div class="empty-state">加载失败</div>';
+        });
+    }
+
+    function viewDetail(id, title, reportType) {
+        fetch(`/api/history/${id}`, { credentials: "include" }).then(r => r.json()).then(data => {
+            if (data.error) { alert(data.error); return; }
+            const d = data.detail;
+            currentDetail = d;
+            currentTitle = d.title || title;
+            currentReportType = d.report_type === "deep" ? "deep" : "quantitative";
+            currentHistoryId = id;
+
+            const overlay = document.getElementById("modal-detail");
+            const modal = overlay.querySelector(".modal");
+            const detailBody = document.getElementById("detail-body");
+            const frame = document.getElementById("deep-report-frame");
+            const excelButton = document.getElementById("btn-export-excel");
+            const htmlButton = document.getElementById("btn-download-html");
+            document.getElementById("detail-title").textContent = currentTitle;
+
+            if (currentReportType === "deep") {
+                modal.classList.add("deep-report");
+                detailBody.style.display = "none";
+                frame.style.display = "block";
+                frame.src = d.view_url;
+                excelButton.style.display = "none";
+                htmlButton.style.display = "flex";
+            } else {
+                modal.classList.remove("deep-report");
+                frame.style.display = "none";
+                frame.src = "about:blank";
+                detailBody.style.display = "block";
+                excelButton.style.display = "flex";
+                htmlButton.style.display = "none";
+                let html = "";
+                let finalList = [];
+                try { finalList = JSON.parse(d.final_list || "[]"); } catch(e) {}
+                if (finalList.length) {
+                    html += '<div class="report-section"><h4>入选标的</h4>';
+                    finalList.forEach(s => {
+                        html += `<div class="stock-card">
+                            <span class="code">${s.code||""}</span>
+                            <span class="name">${s.name||""}</span>
+                            <span class="sector">${s.sector||""}</span>
+                            <span class="price">¥${s.current_price||"-"}</span>
+                            <span class="signal">信号:${s.signal_strength||"-"} 置信:${s.probability_label||"-"}(${s.probability_score||"-"})</span>
+                            <div class="detail">
+                                买入观察: ${s.entry_price||"-"} | 止损: ${s.stop_loss_price||"-"} | 3日目标: ${s.target_price_3d||"-"} | 风险收益比: ${s.risk_reward_ratio||"-"}
+                                ${s.logic_analysis ? "<br>逻辑: " + s.logic_analysis.slice(0,200) : ""}
+                                ${s.technical_analysis ? "<br>技术: " + s.technical_analysis.slice(0,200) : ""}
+                                ${s.watch_3d ? "<br>观察: " + s.watch_3d.slice(0,200) : ""}
+                            </div>
+                        </div>`;
+                    });
+                    html += '</div>';
+                }
+                if (d.disclaimer) {
+                    html += `<div class="report-section"><h4>风险提示</h4><div style="color:#cf3f3f;font-size:13px">${d.disclaimer}</div></div>`;
+                }
+                detailBody.innerHTML = html || '<div class="empty-state">无详细数据</div>';
+            }
+            overlay.classList.add("show");
+        });
+    }
+
+    function closeModal() {
+        const overlay = document.getElementById("modal-detail");
+        overlay.classList.remove("show");
+        overlay.querySelector(".modal").classList.remove("deep-report");
+        const frame = document.getElementById("deep-report-frame");
+        frame.src = "about:blank";
+        frame.style.display = "none";
+        currentDetail = null;
+        currentHistoryId = null;
+        currentReportType = "quantitative";
+    }
+
+    function toggleFullscreen() {
+        const overlay = document.getElementById("modal-detail");
+        if (!document.fullscreenElement) {
+            overlay.requestFullscreen().catch(err => {
+                alert("全屏模式不可用: " + err.message);
+            });
+        } else {
+            document.exitFullscreen();
+        }
+    }
+
+    document.addEventListener("fullscreenchange", () => {
+        const btn = document.querySelector('.modal-btn[onclick="toggleFullscreen()"]');
+        if (!btn) return;
+        if (document.fullscreenElement) {
+            btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3v3a2 2 0 01-2 2H3m18 0h-3a2 2 0 01-2-2V3m0 18v-3a2 2 0 012-2h3M3 16h3a2 2 0 012 2v3"/></svg>退出全屏`;
+        } else {
+            btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3"/></svg>全屏`;
+        }
+    });
+
+    function exportPDF() {
+        if (!currentDetail) return;
+        if (currentReportType === "deep") {
+            const frame = document.getElementById("deep-report-frame");
+            if (frame.contentWindow) frame.contentWindow.print();
+            return;
+        }
+        let finalList = [];
+        try { finalList = JSON.parse(currentDetail.final_list || "[]"); } catch(e) {}
+
+        let html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${currentTitle}</title>
+        <style>
+            body{font-family:"Microsoft YaHei UI",sans-serif;padding:40px;color:#333;line-height:1.6}
+            h1{font-size:20px;border-bottom:2px solid #2f80ed;padding-bottom:10px;margin-bottom:20px}
+            h2{font-size:16px;color:#2f80ed;margin:20px 0 10px}
+            .stock{border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin-bottom:16px;page-break-inside:avoid}
+            .stock-header{font-weight:700;font-size:15px;margin-bottom:8px}
+            .stock-header .price{color:#cf3f3f;margin-left:12px}
+            .stock-header .signal{color:#1f9d55;margin-left:12px;font-size:13px}
+            .stock-info{font-size:13px;color:#666;margin-bottom:4px}
+            .stock-detail{font-size:13px;color:#555;margin-top:8px;line-height:1.8}
+            .disclaimer{color:#cf3f3f;font-size:12px;margin-top:20px;padding:10px;border:1px solid #fdecea;border-radius:6px;background:#fef2f2}
+            @media print{body{padding:20px}.stock{break-inside:avoid}}
+        </style></head><body>
+        <h1>${currentTitle}</h1>`;
+
+        if (finalList.length) {
+            html += '<h2>入选标的</h2>';
+            finalList.forEach((s, idx) => {
+                html += `<div class="stock">
+                    <div class="stock-header">${idx+1}. ${s.code||''} ${s.name||''} <span class="price">¥${s.current_price||'-'}</span> <span class="signal">信号:${s.signal_strength||'-'} 置信:${s.probability_label||'-'}(${s.probability_score||'-'})</span></div>
+                    <div class="stock-info">板块: ${s.sector||''} | 买入观察: ${s.entry_price||'-'} | 止损: ${s.stop_loss_price||'-'} | 3日目标: ${s.target_price_3d||'-'} | 风险收益比: ${s.risk_reward_ratio||'-'}</div>
+                    ${s.logic_analysis ? `<div class="stock-detail"><b>逻辑:</b> ${s.logic_analysis}</div>` : ''}
+                    ${s.technical_analysis ? `<div class="stock-detail"><b>技术:</b> ${s.technical_analysis}</div>` : ''}
+                    ${s.watch_3d ? `<div class="stock-detail"><b>观察:</b> ${s.watch_3d}</div>` : ''}
+                </div>`;
+            });
+        }
+
+        if (currentDetail.disclaimer) {
+            html += `<div class="disclaimer">${currentDetail.disclaimer}</div>`;
+        }
+
+        html += `
+    <script>
+    fetch("/api/user/info", {credentials:"include"}).then(r=>r.json()).then(d=>{
+        if(d.is_admin){var el=document.getElementById("nav-admin");if(el)el.style.display="";}
+    }).catch(()=>{});
+    <\/script>
+<\/body><\/html>`;
+
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(html);
+        printWindow.document.close();
+        setTimeout(() => { printWindow.print(); }, 500);
+    }
+
+    function exportExcel() {
+        if (!currentDetail || currentReportType === "deep") return;
+        let finalList = [];
+        try { finalList = JSON.parse(currentDetail.final_list || "[]"); } catch(e) {}
+
+        const rows = [["Code", "Name", "Sector", "Current Price", "Signal Strength", "Confidence", "Confidence Score",
+                        "Entry Price", "Stop Loss", "3-Day Target", "Risk Reward", "Logic Analysis", "Technical Analysis", "Watch 3D"]];
+
+        finalList.forEach(s => {
+            rows.push([
+                s.code || "",
+                s.name || "",
+                s.sector || "",
+                s.current_price || "",
+                s.signal_strength || "",
+                s.probability_label || "",
+                s.probability_score || "",
+                s.entry_price || "",
+                s.stop_loss_price || "",
+                s.target_price_3d || "",
+                s.risk_reward_ratio || "",
+                s.logic_analysis || "",
+                s.technical_analysis || "",
+                s.watch_3d || ""
+            ]);
+        });
+
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.aoa_to_sheet(rows);
+
+        ws["!cols"] = [
+            { wch: 10 }, { wch: 12 }, { wch: 20 }, { wch: 12 },
+            { wch: 14 }, { wch: 10 }, { wch: 16 },
+            { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 },
+            { wch: 50 }, { wch: 50 }, { wch: 40 }
+        ];
+
+        XLSX.utils.book_append_sheet(wb, ws, "Analysis Report");
+        XLSX.writeFile(wb, `${currentTitle || "analysis_report"}.xlsx`);
+    }
+
+    function downloadDeepHTML() {
+        if (!currentDetail || currentReportType !== "deep" || !currentDetail.download_url) return;
+        window.location.href = currentDetail.download_url;
+    }
+
+    function deleteItem(id, reportType) {
+        const message = reportType === "deep"
+            ? "确定删除该深度分析记录及对应 HTML 文件？"
+            : "确定删除该记录？";
+        if (!confirm(message)) return;
+        fetch(`/api/history/${id}`, { method: "DELETE", credentials: "include" }).then(async r => {
+            const data = await r.json();
+            if (!r.ok) throw new Error(data.error || "删除失败");
+            loadHistory();
+        }).catch(err => alert(err.message));
+    }
+
+    document.getElementById("modal-detail").addEventListener("click", (e) => {
+        if (e.target === document.getElementById("modal-detail")) closeModal();
+    });
+
+    document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && document.fullscreenElement) {
+            document.exitFullscreen();
+        }
+    });
+
+    loadHistory();
+    </script>
+</body>
+</html>

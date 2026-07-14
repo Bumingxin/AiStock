@@ -1,0 +1,83 @@
+<nav class="navbar">
+    <div class="nav-brand">
+        <span class="brand-icon">AI</span>
+        <span class="brand-text">量化选股系统</span>
+    </div>
+    <div class="nav-tabs">
+        <a href="/" class="nav-tab{% if active_page == 'monitor' %} active{% endif %}" data-tab="monitor">开始选股</a>
+        <a href="/#tab-dashboard" class="nav-tab{% if active_page == 'dashboard' %} active{% endif %}" data-tab="dashboard">分析结果</a>
+        <a href="/#tab-chat" class="nav-tab{% if active_page == 'chat' %} active{% endif %}" data-tab="chat">AI对话</a>
+        <a href="/#tab-deep" class="nav-tab{% if active_page == 'deep' %} active{% endif %}" data-tab="deep">深度分析</a>
+        <a href="/history" class="nav-tab{% if active_page == 'history' %} active{% endif %}">历史报告</a>
+        <a href="/admin" class="nav-tab{% if active_page == 'admin' %} active{% endif %}" id="nav-admin"{% if not user.is_admin %} style="display:none"{% endif %}>后台管理</a>
+    </div>
+    <div class="nav-actions">
+        <span id="nav-status" class="status-badge status-ready"{% if not show_runtime %} style="display:none"{% endif %}>就绪</span>
+        <span id="nav-timer" class="timer"{% if not show_runtime %} style="display:none"{% endif %}>00:00</span>
+        <div class="user-avatar-wrap">
+            <div class="user-avatar" id="user-avatar">
+                <span id="avatar-letter">{{ (user.nickname or user.username or "?")[0]|upper }}</span>
+            </div>
+            <div class="user-dropdown" id="user-dropdown">
+                <div class="dropdown-header">
+                    <div class="dropdown-avatar"><span id="dropdown-letter">{{ (user.nickname or user.username or "?")[0]|upper }}</span></div>
+                    <div class="dropdown-info">
+                        <div class="dropdown-name" id="dropdown-name">{{ user.nickname or user.username or "-" }}</div>
+                        <div class="dropdown-points">剩余点数：<span id="dropdown-points">{{ user.points or 0 }}</span></div>
+                    </div>
+                </div>
+                <div class="dropdown-divider"></div>
+                <div class="dropdown-item" id="btn-change-nickname">修改昵称</div>
+                <div class="dropdown-item" id="btn-change-password">修改密码</div>
+                <div class="dropdown-divider"></div>
+                <a href="/history" class="dropdown-item" style="text-decoration:none;display:block">历史报告</a>
+                <a href="/billing" class="dropdown-item" style="text-decoration:none;display:block">查看账单</a>
+                <div class="dropdown-divider"></div>
+                <div class="dropdown-item dropdown-logout" id="btn-logout">退出登录</div>
+            </div>
+        </div>
+    </div>
+</nav>
+<script>
+(function(){
+    function $(s){return document.querySelector(s)}
+    function loadUserInfo(){
+        fetch("/api/user/info",{credentials:"include"}).then(function(r){return r.json()}).then(function(data){
+            if(data.error)return;
+            var name=data.nickname||data.username||"?";
+            var letter=name.charAt(0).toUpperCase();
+            var points=data.points!==undefined?data.points:"-";
+            var el=$("#avatar-letter");if(el)el.textContent=letter;
+            el=$("#dropdown-letter");if(el)el.textContent=letter;
+            el=$("#dropdown-name");if(el)el.textContent=name;
+            el=$("#dropdown-points");if(el)el.textContent=points;
+            if(data.is_admin){var a=$("#nav-admin");if(a)a.style.display="";}
+        }).catch(function(){});
+    }
+    loadUserInfo();
+    var avatarBtn=$("#user-avatar"),dropdown=$("#user-dropdown");
+    if(avatarBtn&&dropdown){
+        avatarBtn.addEventListener("click",function(e){e.stopPropagation();dropdown.classList.toggle("show");});
+        document.addEventListener("click",function(e){if(!dropdown.contains(e.target)&&e.target!==avatarBtn)dropdown.classList.remove("show");});
+    }
+    var logoutBtn=$("#btn-logout");
+    if(logoutBtn)logoutBtn.addEventListener("click",function(){window.location.href="/logout";});
+    var nickBtn=$("#btn-change-nickname");
+    if(nickBtn)nickBtn.addEventListener("click",function(){
+        dropdown.classList.remove("show");
+        var name=prompt("请输入新昵称：");
+        if(!name||!name.trim())return;
+        fetch("/api/user/nickname",{method:"POST",credentials:"include",headers:{"Content-Type":"application/json"},body:JSON.stringify({nickname:name.trim()})}).then(function(r){return r.json()}).then(function(data){if(data.error){alert(data.error);return;}alert("昵称已修改");loadUserInfo();}).catch(function(e){alert("修改失败："+e.message);});
+    });
+    var pwdBtn=$("#btn-change-password");
+    if(pwdBtn)pwdBtn.addEventListener("click",function(){
+        dropdown.classList.remove("show");
+        var oldPwd=prompt("请输入当前密码：");
+        if(!oldPwd)return;
+        var newPwd=prompt("请输入新密码：");
+        if(!newPwd||newPwd.length<4){alert("新密码至少4位");return;}
+        fetch("/api/user/password",{method:"POST",credentials:"include",headers:{"Content-Type":"application/json"},body:JSON.stringify({old_password:oldPwd,new_password:newPwd})}).then(function(r){return r.json()}).then(function(data){if(data.error){alert(data.error);return;}alert("密码已修改");}).catch(function(e){alert("修改失败："+e.message);});
+    });
+window.__navAvatarInit=true;
+})();
+</script>
