@@ -5,7 +5,7 @@ from pathlib import Path
 DEFAULT = {
     "openai_base_url": "http://your_base_url/v1",
     "openai_api_key": "your_api_key",
-    "model": "your_model_name",
+    "model": "",
     "top_sectors": 5,
     "top_stocks": 20,
     "min_per_sector": 2,
@@ -31,7 +31,6 @@ def _base_dir() -> Path:
 
 def _normalize_config(data: dict) -> dict:
     data = dict(data or {})
-    data["enable_realtime_news"] = True
     data.pop("offline_demo", None)
     if data.get("openai_base_url") in {"https://o.aicli.cn", "http://o.aicli.cn"}:
         data["openai_base_url"] = "http://o.aicli.cn/v1"

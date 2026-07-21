@@ -10,7 +10,6 @@ BJT = timezone(timedelta(hours=8))
 from typing import Callable, Dict, Any, Optional, List
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-from config import save_config
 from llm_client import (
     analyze_news_to_sectors,
     analyze_sector_to_stocks,
@@ -666,5 +665,4 @@ def run_pipeline(cfg: dict, stage_cb=None, cancel_event=None) -> Dict[str, Any]:
         _emit(stage_cb, "final_done", f"     观察要点: {item.get('watch_3d', '')}")
     _emit(stage_cb, "final_done", f"  风险提示：{final.get('disclaimer', '仅供参考，不构成投资建议。')}")
 
-    save_config(cfg)
     return final

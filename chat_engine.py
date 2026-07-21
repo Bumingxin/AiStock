@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import json
 import re
@@ -41,7 +41,9 @@ def _client(cfg: dict):
 def chat_analyze_stock(report: Dict[str, Any], history: List[Dict[str, str]], cfg: dict) -> str:
     """基于股票报告和对话历史，返回LLM分析回答。"""
     c = _client(cfg)
-    model = cfg.get("model", "gpt-4o")
+    model = cfg.get("model", "").strip()
+    if not model:
+        raise ValueError("未配置 model，请在 config.json 中填写 model 字段。")
 
     # 构建系统消息：注入股票报告
     report_text = json.dumps(report, ensure_ascii=False, indent=2)

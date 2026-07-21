@@ -65,18 +65,7 @@ class DeepAnalysisPipeline:
             return False
 
     def _script_env(self, script_name: str) -> Dict[str, str]:
-        env = os.environ.copy()
-        if script_name == "debate_engine.py":
-            api_key = str(self.llm_config.get("openai_api_key") or "").strip()
-            base_url = str(self.llm_config.get("openai_base_url") or "").strip()
-            model = str(self.llm_config.get("model") or "").strip()
-            if api_key and api_key != "your_api_key":
-                env["OPENAI_API_KEY"] = api_key
-            if base_url and base_url != "http://your_base_url/v1":
-                env["OPENAI_BASE_URL"] = base_url
-            if model and model != "your_model_name":
-                env["DEBATE_MODEL"] = model
-        return env
+        return os.environ.copy()
 
     def _update_html_path_from_dash(self):
         """Update html_output filename using stock name from dash JSON."""

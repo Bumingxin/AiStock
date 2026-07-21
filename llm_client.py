@@ -129,13 +129,16 @@ class OpenClient:
         cfg = load_config()
         if not cfg.get("openai_api_key"):
             raise ValueError("未配置 openai_api_key，请先在设置里填写。")
+        model = cfg.get("model", "").strip()
+        if not model:
+            raise ValueError("未配置 model，请在 config.json 中填写 model 字段。")
         self.c = OpenAI(
             api_key=cfg["openai_api_key"],
             base_url=cfg.get("openai_base_url") or "http://o.aicli.cn/v1",
             timeout=120.0,
             max_retries=1,
         )
-        self.model = cfg.get("model", "Qwen3-4B-Instruct")
+        self.model = model
 
     def chat_json(self, system: str, user: str, schema_hint: str, max_retries: int = 2, timeout: float = 120.0) -> Any:
         messages = [
@@ -434,23 +437,3 @@ def final_pick_report(news_summary: str, sector_summary: str, stock_reports: lis
         f"大盘环境：{market_info[:2500]}\n板块摘要：{sector_summary[:4000]}\n新闻摘要：{news_summary[:3000]}\n个股报告：{reports_text}"
     )
     return client.chat_json(SYSTEM, user, schema, max_retries=1, timeout=60.0)
-
-
-def chat_analyze_stock(report: dict, history: list, cfg: dict) -> str:
-    if not cfg.get("openai_api_key"):
-        raise ValueError("未配置 openai_api_key")
-    client = OpenAI(api_key=cfg["openai_api_key"], base_url=cfg.get("openai_base_url"), timeout=120.0, max_retries=1)
-    report_text = json.dumps(report, ensure_ascii=False, indent=2)
-    messages = [{
-        "role": "system",
-        "content": "你是一位资深A股技术分析师和交易教练。回答必须紧扣报告中的具体数据和价位，不编造数字，给出操作条件和风险。\n\n标的完整报告：\n" + report_text,
-    }]
-    messages.extend(history[-20:])
-    response = client.chat.completions.create(
-        model=cfg.get("model", "Qwen3-4B-Instruct"),
-        messages=messages,
-        temperature=0.3,
-        max_tokens=1500,
-        timeout=120.0,
-    )
-    return response.choices[0].message.content or "未获取到回答。"

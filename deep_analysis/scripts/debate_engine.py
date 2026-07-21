@@ -30,6 +30,11 @@ _VENV_PY = _SKILL_DIR / ".venv" / "bin" / "python"
 if _VENV_PY.exists() and Path(sys.executable).resolve() != _VENV_PY.resolve():
     os.execv(str(_VENV_PY), [str(_VENV_PY), *sys.argv])
 
+# Add project root to sys.path for importing config
+_PROJECT_ROOT = Path(__file__).resolve().parents[2]
+if str(_PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(_PROJECT_ROOT))
+
 # ---------------------------------------------------------------------------
 # Role definitions
 # ---------------------------------------------------------------------------
@@ -110,12 +115,25 @@ ARBITER_SYSTEM = (
 )
 
 # ---------------------------------------------------------------------------
-# LLM call helper (uses OpenAI-compatible API via env vars)
+# LLM call helper (reads config from config.json)
 # ---------------------------------------------------------------------------
+
+def _get_config():
+    """Read config from config.json."""
+    try:
+        from config import load_config
+        return load_config()
+    except Exception:
+        return {}
+
 
 def _call_llm(messages, model=None, max_tokens=1200, temperature=0.3):
     """Call LLM via litellm (if available) or raw OpenAI SDK."""
-    model = model or os.environ.get("DEBATE_MODEL", "gpt-4.1-mini")
+    if not model:
+        cfg = _get_config()
+        model = cfg.get("model", "").strip()
+    if not model:
+        raise ValueError("未配置 model，请在 config.json 中填写 model 字段。")
 
     try:
         from litellm import completion
@@ -127,10 +145,12 @@ def _call_llm(messages, model=None, max_tokens=1200, temperature=0.3):
 
     try:
         import openai
-        client = openai.OpenAI(
-            api_key=os.environ.get("OPENAI_API_KEY", ""),
-            base_url=os.environ.get("OPENAI_BASE_URL"),
-        )
+        cfg = _get_config()
+        api_key = cfg.get("openai_api_key", "")
+        base_url = cfg.get("openai_base_url", "")
+        if not api_key:
+            raise ValueError("未配置 openai_api_key")
+        client = openai.OpenAI(api_key=api_key, base_url=base_url)
         resp = client.chat.completions.create(
             model=model, messages=messages,
             max_tokens=max_tokens, temperature=temperature,
