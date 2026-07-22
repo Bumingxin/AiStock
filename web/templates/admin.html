@@ -298,6 +298,124 @@
             .main-content { margin-left: 60px; }
             .form-row, .filter-bar { flex-direction: column; }
         }
+        .config-form {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .config-item {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 12px 0;
+            border-bottom: 1px solid #2d3748;
+        }
+        .config-item:last-child {
+            border-bottom: none;
+        }
+        .config-label {
+            flex: 1;
+            min-width: 0;
+        }
+        .config-label label {
+            display: block;
+            color: #e5e7eb;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+        .config-desc {
+            display: block;
+            color: #6b7280;
+            font-size: 12px;
+        }
+        .config-item input[type="text"],
+        .config-item input[type="number"],
+        .config-item input[type="password"] {
+            width: 280px;
+            padding: 8px 12px;
+            background: #0f1923;
+            border: 1px solid #2d3748;
+            border-radius: 6px;
+            color: #e5e7eb;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.15s;
+        }
+        .config-item input:focus {
+            border-color: #2f80ed;
+        }
+        .config-input-group {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .config-input-group input {
+            width: 240px;
+        }
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 48px;
+            height: 24px;
+            cursor: pointer;
+        }
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #374151;
+            border-radius: 24px;
+            transition: 0.3s;
+        }
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background: white;
+            border-radius: 50%;
+            transition: 0.3s;
+        }
+        .toggle-switch input:checked + .toggle-slider {
+            background: #2f80ed;
+        }
+        .toggle-switch input:checked + .toggle-slider:before {
+            transform: translateX(24px);
+        }
+        .config-toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 24px;
+            background: #059669;
+            color: white;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            z-index: 2000;
+            animation: fadeInOut 2s ease-in-out;
+        }
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translateY(-10px); }
+            10% { opacity: 1; transform: translateY(0); }
+            80% { opacity: 1; }
+            100% { opacity: 0; }
+        }
     </style>
 </head>
 <body>
@@ -313,6 +431,10 @@
             <a class="menu-item" onclick="switchPage('billing')">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
                 <span>扣费管理</span>
+            </a>
+            <a class="menu-item" onclick="switchPage('config')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+                <span>系统配置</span>
             </a>
             <a class="menu-item" onclick="switchPage('logs')">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
@@ -496,6 +618,162 @@
                     </tbody>
                 </table>
                 <div id="logs-empty" class="empty-state" style="display:none">未找到匹配的记录</div>
+            </div>
+        </div>
+
+        <div id="page-config" class="page">
+            <div class="page-header">
+                <h2>系统配置</h2>
+                <div style="display:flex;gap:8px">
+                    <button type="button" class="btn btn-outline" onclick="resetConfig()">恢复默认配置</button>
+                    <button type="button" class="btn btn-primary" onclick="saveConfig()">保存配置</button>
+                </div>
+            </div>
+
+            <div class="section-card">
+                <h3>基础配置</h3>
+                <div class="config-form" id="config-form">
+                    <div class="config-item">
+                        <div class="config-label">
+                            <label for="cfg-openai_base_url">LLM API 地址</label>
+                            <span class="config-desc">支持 OpenAI / DeepSeek / 本地 Ollama 等兼容接口</span>
+                        </div>
+                        <input type="text" id="cfg-openai_base_url" name="openai_base_url" placeholder="https://api.openai.com/v1">
+                    </div>
+                    <div class="config-item">
+                        <div class="config-label">
+                            <label for="cfg-openai_api_key">API Key</label>
+                            <span class="config-desc">LLM 服务的 API 密钥</span>
+                        </div>
+                        <div class="config-input-group">
+                            <input type="password" id="cfg-openai_api_key" name="openai_api_key" placeholder="sk-...">
+                            <button type="button" class="btn btn-outline btn-sm" onclick="toggleApiKeyVisibility()">显示</button>
+                        </div>
+                    </div>
+                    <div class="config-item">
+                        <div class="config-label">
+                            <label for="cfg-model">模型名称</label>
+                            <span class="config-desc">使用的 AI 模型名称</span>
+                        </div>
+                        <input type="text" id="cfg-model" name="model" placeholder="gpt-4o">
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-card">
+                <h3>分析参数</h3>
+                <div class="config-form">
+                    <div class="config-item">
+                        <div class="config-label">
+                            <label for="cfg-top_sectors">热门板块数量</label>
+                            <span class="config-desc">每轮分析推荐的热门板块数量</span>
+                        </div>
+                        <input type="number" id="cfg-top_sectors" name="top_sectors" min="1" max="20">
+                    </div>
+                    <div class="config-item">
+                        <div class="config-label">
+                            <label for="cfg-top_stocks">候选股票总数</label>
+                            <span class="config-desc">每轮批量分析的候选股票总数</span>
+                        </div>
+                        <input type="number" id="cfg-top_stocks" name="top_stocks" min="5" max="100">
+                    </div>
+                    <div class="config-item">
+                        <div class="config-label">
+                            <label for="cfg-min_per_sector">每板块最少候选数</label>
+                            <span class="config-desc">每个热门板块至少选出的股票数量</span>
+                        </div>
+                        <input type="number" id="cfg-min_per_sector" name="min_per_sector" min="1" max="10">
+                    </div>
+                    <div class="config-item">
+                        <div class="config-label">
+                            <label for="cfg-max_per_sector">每板块最多候选数</label>
+                            <span class="config-desc">每个热门板块最多选出的股票数量</span>
+                        </div>
+                        <input type="number" id="cfg-max_per_sector" name="max_per_sector" min="1" max="10">
+                    </div>
+                    <div class="config-item">
+                        <div class="config-label">
+                            <label for="cfg-enable_realtime_news">启用实时新闻</label>
+                            <span class="config-desc">是否从新闻源实时抓取最新财经新闻</span>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="cfg-enable_realtime_news" name="enable_realtime_news">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="config-item">
+                        <div class="config-label">
+                            <label for="cfg-news_per_source">每源新闻数量</label>
+                            <span class="config-desc">从每个新闻源抓取的新闻条数</span>
+                        </div>
+                        <input type="number" id="cfg-news_per_source" name="news_per_source" min="10" max="100">
+                    </div>
+                    <div class="config-item">
+                        <div class="config-label">
+                            <label for="cfg-news_workers">新闻抓取并发数</label>
+                            <span class="config-desc">同时抓取新闻的线程数量</span>
+                        </div>
+                        <input type="number" id="cfg-news_workers" name="news_workers" min="1" max="32">
+                    </div>
+                    <div class="config-item">
+                        <div class="config-label">
+                            <label for="cfg-news_total_limit">新闻总数上限</label>
+                            <span class="config-desc">单次分析最多处理的新闻总数</span>
+                        </div>
+                        <input type="number" id="cfg-news_total_limit" name="news_total_limit" min="100" max="10000">
+                    </div>
+                    <div class="config-item">
+                        <div class="config-label">
+                            <label for="cfg-stock_workers">股票分析并发数</label>
+                            <span class="config-desc">同时分析股票的线程数量</span>
+                        </div>
+                        <input type="number" id="cfg-stock_workers" name="stock_workers" min="1" max="16">
+                    </div>
+                    <div class="config-item">
+                        <div class="config-label">
+                            <label for="cfg-enable_anysearch">启用联网搜索</label>
+                            <span class="config-desc">是否启用联网搜索增强分析</span>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="cfg-enable_anysearch" name="enable_anysearch">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-card">
+                <h3>积分设置</h3>
+                <div class="config-form">
+                    <div class="config-item">
+                        <div class="config-label">
+                            <label for="cfg-analysis_points_cost">批量分析扣费</label>
+                            <span class="config-desc">每次批量选股分析消耗的积分</span>
+                        </div>
+                        <input type="number" id="cfg-analysis_points_cost" name="analysis_points_cost" min="1" max="1000">
+                    </div>
+                    <div class="config-item">
+                        <div class="config-label">
+                            <label for="cfg-chat_points_cost">AI 对话扣费</label>
+                            <span class="config-desc">每次 AI 对话消耗的积分</span>
+                        </div>
+                        <input type="number" id="cfg-chat_points_cost" name="chat_points_cost" min="1" max="100">
+                    </div>
+                    <div class="config-item">
+                        <div class="config-label">
+                            <label for="cfg-deep_analysis_points_cost">深度分析扣费</label>
+                            <span class="config-desc">每次单股深度分析消耗的积分</span>
+                        </div>
+                        <input type="number" id="cfg-deep_analysis_points_cost" name="deep_analysis_points_cost" min="1" max="1000">
+                    </div>
+                    <div class="config-item">
+                        <div class="config-label">
+                            <label for="cfg-default_user_points">新用户默认积分</label>
+                            <span class="config-desc">新注册用户获得的初始积分</span>
+                        </div>
+                        <input type="number" id="cfg-default_user_points" name="default_user_points" min="0" max="10000">
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -737,7 +1015,7 @@
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
         document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
         document.getElementById('page-' + page).classList.add('active');
-        const pageIndex = { 'users': 0, 'billing': 1, 'logs': 2 };
+        const pageIndex = { 'users': 0, 'billing': 1, 'config': 2, 'logs': 3 };
         document.querySelectorAll('.menu-item')[pageIndex[page] || 0].classList.add('active');
     }
 
@@ -806,6 +1084,101 @@
         });
         document.getElementById('logs-mgmt-empty').style.display = visible ? 'none' : 'block';
     }
+
+    const defaultConfig = {{ config | tojson }};
+
+    function loadConfigToForm() {
+        document.getElementById('cfg-openai_base_url').value = defaultConfig.openai_base_url || '';
+        document.getElementById('cfg-openai_api_key').value = defaultConfig.openai_api_key || '';
+        document.getElementById('cfg-model').value = defaultConfig.model || '';
+        document.getElementById('cfg-top_sectors').value = defaultConfig.top_sectors || 5;
+        document.getElementById('cfg-top_stocks').value = defaultConfig.top_stocks || 20;
+        document.getElementById('cfg-min_per_sector').value = defaultConfig.min_per_sector || 2;
+        document.getElementById('cfg-max_per_sector').value = defaultConfig.max_per_sector || 5;
+        document.getElementById('cfg-enable_realtime_news').checked = defaultConfig.enable_realtime_news !== false;
+        document.getElementById('cfg-news_per_source').value = defaultConfig.news_per_source || 40;
+        document.getElementById('cfg-news_workers').value = defaultConfig.news_workers || 12;
+        document.getElementById('cfg-news_total_limit').value = defaultConfig.news_total_limit || 3000;
+        document.getElementById('cfg-stock_workers').value = defaultConfig.stock_workers || 4;
+        document.getElementById('cfg-enable_anysearch').checked = defaultConfig.enable_anysearch !== false;
+        document.getElementById('cfg-analysis_points_cost').value = defaultConfig.analysis_points_cost || 50;
+        document.getElementById('cfg-chat_points_cost').value = defaultConfig.chat_points_cost || 2;
+        document.getElementById('cfg-deep_analysis_points_cost').value = defaultConfig.deep_analysis_points_cost || 30;
+        document.getElementById('cfg-default_user_points').value = defaultConfig.default_user_points || 100;
+    }
+
+    function toggleApiKeyVisibility() {
+        const input = document.getElementById('cfg-openai_api_key');
+        const btn = input.nextElementSibling;
+        if (input.type === 'password') {
+            input.type = 'text';
+            btn.textContent = '隐藏';
+        } else {
+            input.type = 'password';
+            btn.textContent = '显示';
+        }
+    }
+
+    function saveConfig() {
+        const data = {
+            openai_base_url: document.getElementById('cfg-openai_base_url').value.trim(),
+            openai_api_key: document.getElementById('cfg-openai_api_key').value.trim(),
+            model: document.getElementById('cfg-model').value.trim(),
+            top_sectors: parseInt(document.getElementById('cfg-top_sectors').value) || 5,
+            top_stocks: parseInt(document.getElementById('cfg-top_stocks').value) || 20,
+            min_per_sector: parseInt(document.getElementById('cfg-min_per_sector').value) || 2,
+            max_per_sector: parseInt(document.getElementById('cfg-max_per_sector').value) || 5,
+            enable_realtime_news: document.getElementById('cfg-enable_realtime_news').checked,
+            news_per_source: parseInt(document.getElementById('cfg-news_per_source').value) || 40,
+            news_workers: parseInt(document.getElementById('cfg-news_workers').value) || 12,
+            news_total_limit: parseInt(document.getElementById('cfg-news_total_limit').value) || 3000,
+            stock_workers: parseInt(document.getElementById('cfg-stock_workers').value) || 4,
+            enable_anysearch: document.getElementById('cfg-enable_anysearch').checked,
+            analysis_points_cost: parseInt(document.getElementById('cfg-analysis_points_cost').value) || 50,
+            chat_points_cost: parseInt(document.getElementById('cfg-chat_points_cost').value) || 2,
+            deep_analysis_points_cost: parseInt(document.getElementById('cfg-deep_analysis_points_cost').value) || 30,
+            default_user_points: parseInt(document.getElementById('cfg-default_user_points').value) || 100,
+        };
+
+        fetch('/admin/config/save', {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+        })
+        .then(resp => resp.json())
+        .then(result => {
+            if (result.message) {
+                showToast('配置已保存');
+            } else {
+                alert(result.error || '保存失败');
+            }
+        })
+        .catch(err => {
+            alert('保存失败：' + err.message);
+        });
+    }
+
+    function resetConfig() {
+        if (!confirm('确定要恢复默认配置吗？这将覆盖当前所有设置。')) {
+            return;
+        }
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/admin/config/reset';
+        document.body.appendChild(form);
+        form.submit();
+    }
+
+    function showToast(message) {
+        const toast = document.createElement('div');
+        toast.className = 'config-toast';
+        toast.textContent = message;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 2000);
+    }
+
+    document.addEventListener('DOMContentLoaded', loadConfigToForm);
     </script>
 </body>
 </html>

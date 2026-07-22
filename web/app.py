@@ -339,6 +339,8 @@ async def start_analysis(request: Request):
     if manager.active_task_count() >= MAX_PARALLEL_TASKS:
         return JSONResponse({"error": f"系统最多同时运行 {MAX_PARALLEL_TASKS} 个任务，请稍后重试"}, status_code=429)
 
+    session.config = load_config()
+
     if not session.config.get("openai_api_key") or session.config["openai_api_key"] == "your_api_key":
         return JSONResponse({"error": "请先配置 API Key"}, status_code=400)
 
@@ -708,6 +710,51 @@ async def admin_config(request: Request):
     cfg["deep_analysis_points_cost"] = deep_analysis_points_cost
     save_config(cfg)
     log_admin_action(user["username"], "config_change", "", f"分析扣费: {old_analysis}->{analysis_points_cost}, 对话扣费: {old_chat}->{chat_points_cost}, 深度分析扣费: {old_deep}->{deep_analysis_points_cost}")
+    return RedirectResponse(url="/admin", status_code=302)
+
+
+@app.post("/admin/config/save")
+async def admin_config_save(request: Request):
+    user = require_admin(request)
+    if user is None:
+        return RedirectResponse(url="/login", status_code=302)
+    data = await request.json()
+    int_keys = {
+        "top_sectors", "top_stocks", "min_per_sector", "max_per_sector",
+        "news_per_source", "news_workers", "stock_workers", "news_total_limit",
+        "analysis_points_cost", "chat_points_cost", "deep_analysis_points_cost", "default_user_points",
+    }
+    for key in int_keys:
+        if key in data:
+            try:
+                data[key] = int(data[key])
+            except (ValueError, TypeError):
+                pass
+    if "enable_realtime_news" in data:
+        data["enable_realtime_news"] = bool(data["enable_realtime_news"])
+    if "enable_anysearch" in data:
+        data["enable_anysearch"] = bool(data["enable_anysearch"])
+    cfg = load_config()
+    old_cfg = dict(cfg)
+    cfg.update(data)
+    save_config(cfg)
+    changes = []
+    for key in data:
+        if key in old_cfg and old_cfg[key] != cfg[key]:
+            changes.append(f"{key}: {old_cfg[key]} -> {cfg[key]}")
+    log_admin_action(user["username"], "config_change", "", f"系统配置变更: {'; '.join(changes[:10])}")
+    return {"message": "配置已保存"}
+
+
+@app.post("/admin/config/reset")
+async def admin_config_reset(request: Request):
+    user = require_admin(request)
+    if user is None:
+        return RedirectResponse(url="/login", status_code=302)
+    from config import DEFAULT
+    cfg = dict(DEFAULT)
+    save_config(cfg)
+    log_admin_action(user["username"], "config_change", "", "恢复默认系统配置")
     return RedirectResponse(url="/admin", status_code=302)
 
 
